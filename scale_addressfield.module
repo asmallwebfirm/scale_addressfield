@@ -1,0 +1,165 @@
+<?php
+
+/**
+ * @file
+ * Hooks and functions for the Scale Addressfield module.
+ */
+
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * In this widget form alter, we're attaching custom validation handlers, each
+ * of which serve a unique purpose in helping scale Address Field.
+ */
+function scale_addressfield_field_widget_form_alter(&$element, &$form_state, $context) {
+  // We only ever want to alter the address field.
+  if (isset($element['#addressfield']) && $element['#addressfield']) {
+    // For our collective sanity...
+    $country = &$element['country'];
+    $state = &$element['locality_block']['administrative_area'];
+
+    // Add a validation handler to manage country selection validation errors.
+    $country['#element_validate'][] = 'scale_addressfield_country_validation_errors';
+
+    // Add a validation handler to manage illegal choice validation errors on
+    // the administrative area field.
+    if (isset($state['#element_validate']) && is_array($state['#element_validate'])) {
+      array_unshift($state['#element_validate'], 'scale_addressfield_state_validation_errors');
+    }
+    else {
+      $state['#element_validate'] = array('scale_addressfield_state_validation_errors');
+    }
+
+    // Add another country validation handler the ensures Address Field doesn't
+    // unnecessarily trigger form rebuilds.
+    $country['#element_validate'][] = 'scale_addressfield_prevent_rebuild';
+  }
+}
+
+
+/**
+ * Address Field country element validation handler that checks to see if the
+ * country element was responsible for triggering a form submission, which is
+ * only possible in an AJAX context.
+ *
+ * In the event it did trigger submission, it removes all messages and form
+ * errors (because a user should never see an error by simply selecting their
+ * country).
+ *
+ * If the user happens to be unauthenticated, it also clears the page cache of
+ * the page on which the user selected their country (because doing so creates
+ * an inconsistency between the cached page and the cached form).
+ */
+function scale_addressfield_country_validation_errors($element, $form_state, $form) {
+  // If a country selection triggered the form submission, remove all errors
+  // and messages.
+  if (_form_element_triggered_scripted_submission($element, $form_state)) {
+    drupal_get_messages();
+    drupal_static_reset('form_set_error');
+
+    // If this user is unauthenticated, the action of changing the country has
+    // created an inconsistency between the cached state of form and the form
+    // as it existed when the page on which the form exists was originally
+    // created. In order to prevent odd collisions, we must wipe it. Note that
+    // we're using the referer here because we're currently in an AJAX context.
+    if (isset($_SERVER['HTTP_REFERER']) && !user_is_logged_in()) {
+      cache_clear_all($_SERVER['HTTP_REFERER'], 'cache_page');
+    }
+  }
+}
+
+
+/**
+ * Address Field administrative area element validation handler that checks for
+ * "illegal choice" errors thrown by core Drupal.
+ *
+ * This case most often arises when form cache and page entries are out of sync.
+ * More specifically, when the cached form represents a country with a select
+ * list for its administrative divisions while the cached page represents a
+ * different country with a different select list of administrative divisions.
+ *
+ * To work around this, we simply ignore all such errors set against this form
+ * element.
+ *
+ * We also have to set a globally accessible flag to indicate when such an error
+ * was detected to prevent Address Field from forcing a form rebuild when none
+ * is necessary. For convenience, we use drupal_static().
+ *
+ * @see scale_addressfield_prevent_rebuild()
+ */
+function scale_addressfield_state_validation_errors($element, $form_state, $form) {
+  $state_validation_avoided = &drupal_static(__FUNCTION__, FALSE);
+  $message = 'An illegal choice has been detected. Please contact the site administrator.';
+
+  // Check to see if this state element has an illegal choice error against it.
+  if ($error = form_get_error($element) AND $error == t($message)) {
+    // If so, hook into the global error state and remove the error.
+    $key = implode('][', $element['#parents']);
+    $errors = &drupal_static('form_set_error');
+    unset($errors[$key]);
+
+    // Also, we need to remove the message, or else users get a random "illegal
+    // choice" error on the page subsequent to successful form submission.
+    scale_addressfield_remove_message('error', $message);
+
+    // Flag that we've avoided an erroneous state validation so that we can
+    // mark $form_state['rebuild'] FALSE and prevent a form rebuild.
+    // Note we cannot do that here because this validation handler runs before
+    // one found in Address Field.
+    $state_validation_avoided = TRUE;
+  }
+}
+
+
+/**
+ * Address Field country element validation handler that checks for erroneous
+ * administrative area validation errors. If a validation error was avoided,
+ * ensure that the form is not rebuilt.
+ *
+ * @see scale_addressfield_state_validation_errors()
+ */
+function scale_addressfield_prevent_rebuild($element, &$form_state, $form) {
+  if (drupal_static('scale_addressfield_state_validation_errors')) {
+    $form_state['rebuild'] = FALSE;
+  }
+}
+
+
+/**
+ * Helper function to remove messages previously set elsewhere by Drupal.
+ *
+ * @param string $type
+ *   The type of message to delete (error, status, etc).
+ * @param string $message
+ *   The message (in English) that should not be displayed to the user.
+ * @param array $args
+ *   Any arguments to pass to the translation function.
+ */
+function scale_addressfield_remove_message($type, $message, $args = array()) {
+  $message_search = t($message, $args);
+
+  // The array_search function expects an array.
+  if (isset($_SESSION['messages'][$type]) && is_array($_SESSION['messages'][$type])) {
+    $message_key = array_search($message_search, $_SESSION['messages'][$type]);
+
+    if ($message_key !== FALSE) {
+      // Remove the offending message.
+      unset($_SESSION['messages'][$type][$message_key]);
+
+      // If we deleted the only message, unset the message array.
+      if (count($_SESSION['messages'][$type]) == 0) {
+        unset($_SESSION['messages'][$type]);
+
+        // If we deleted the only message at all, unset the whole thing.
+        if (count($_SESSION['messages']) == 0) {
+          unset($_SESSION['messages']);
+        }
+      }
+      // Otherwise, reset the array keys. Drupal expects them neatly in order.
+      else {
+        $_SESSION['messages'][$type] = array_values($_SESSION['messages'][$type]);
+      }
+    }
+  }
+}
