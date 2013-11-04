@@ -1,0 +1,6 @@
+name = Scale Address Field
+description = A utility Drupal extension that fixes Address Field bugs that crop up at scale.
+package = Fields
+core = 7.x
+
+dependencies[] = addressfield
