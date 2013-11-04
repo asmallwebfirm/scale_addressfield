@@ -7,6 +7,32 @@
 
 
 /**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Alters the core system performance settings form to prevent administrators
+ * from setting cache lifetimes below 6 hours. This is necessary to prevent
+ * page cache entries from outliving the caches of the forms embedded within.
+ *
+ * Obviously if you hard-code any of these values in a settings.php file, or if
+ * you happen to have already set these values above 6 hours, you will need to
+ * reset those values.
+ */
+function scale_addressfield_form_system_performance_settings_alter(&$form, &$form_state, $form_id) {
+  $cache_lifetime = &$form['caching']['cache_lifetime'];
+  $page_cache_max_age = &$form['caching']['page_cache_maximum_age'];
+
+  // Loop through all page cache-related options and remove those > 6hrs. Note
+  // the options between the two are identical in Core, so we only loop once.
+  foreach ($cache_lifetime['#options'] as $value => $display) {
+    if ($value > 21600) {
+      unset($cache_lifetime['#options'][$value]);
+      unset($page_cache_max_age['#options'][$value]);
+    }
+  }
+}
+
+
+/**
  * Implements hook_field_widget_form_alter().
  *
  * In this widget form alter, we're attaching custom validation handlers, each
