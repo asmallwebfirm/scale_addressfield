@@ -41,25 +41,28 @@ function scale_addressfield_form_system_performance_settings_alter(&$form, &$for
 function scale_addressfield_field_widget_form_alter(&$element, &$form_state, $context) {
   // We only ever want to alter the address field.
   if (isset($element['#addressfield']) && $element['#addressfield']) {
-    // For our collective sanity...
     $country = &$element['country'];
-    $state = &$element['locality_block']['administrative_area'];
 
     // Add a validation handler to manage country selection validation errors.
     $country['#element_validate'][] = 'scale_addressfield_country_validation_errors';
 
-    // Add a validation handler to manage illegal choice validation errors on
-    // the administrative area field.
-    if (isset($state['#element_validate']) && is_array($state['#element_validate'])) {
-      array_unshift($state['#element_validate'], 'scale_addressfield_state_validation_errors');
-    }
-    else {
-      $state['#element_validate'] = array('scale_addressfield_state_validation_errors');
-    }
+    // First, check that this country even has administrative divisions.
+    if (isset($element['locality_block']['administrative_area'])) {
+      $state = &$element['locality_block']['administrative_area'];
 
-    // Add another country validation handler the ensures Address Field doesn't
-    // unnecessarily trigger form rebuilds.
-    $country['#element_validate'][] = 'scale_addressfield_prevent_rebuild';
+      // Add a validation handler to manage illegal choice validation errors on
+      // the administrative area field.
+      if (isset($state['#element_validate']) && is_array($state['#element_validate'])) {
+        array_unshift($state['#element_validate'], 'scale_addressfield_state_validation_errors');
+      }
+      else {
+        $state['#element_validate'] = array('scale_addressfield_state_validation_errors');
+      }
+
+      // Add another country validation handler the ensures Address Field
+      // doesn't unnecessarily trigger form rebuilds.
+      $country['#element_validate'][] = 'scale_addressfield_prevent_rebuild';
+    }
   }
 }
 
