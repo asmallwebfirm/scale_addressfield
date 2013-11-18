@@ -1,4 +1,4 @@
-Scale Address Field
+Scale Address Field [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield)
 =======================
 
 This is a a utility Drupal extension that works around bugs in the 
