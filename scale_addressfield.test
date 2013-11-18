@@ -1,0 +1,166 @@
+<?php
+
+/**
+ * @file
+ * Scale Address Field tests.
+ */
+
+
+/**
+ * Common parent class containing common helpers.
+ */
+abstract class ScaleAddressfieldWebTestCase extends DrupalWebTestCase {
+
+  /**
+   * Creates a new Address Field instance.
+   */
+  protected function createAddressfield($name) {
+    $field = array(
+      'field_name' => $name,
+      'type' => 'addressfield',
+      'module' => 'addressfield',
+    );
+
+    return field_create_field($field);
+  }
+
+  /**
+   * Attaches an Addressfield field to the user entity.
+   */
+  protected function createAddressfieldInstance($instance) {
+    $instance['widget'] = array(
+      'weight' => 7,
+      'type' => 'addressfield_standard',
+      'module' => 'addressfield',
+      'active' => 1,
+      'settings' => array(
+        'available_countries' => array(),
+        'format_handlers' => array('address' => 'address'),
+      ),
+    );
+
+    return field_create_instance($instance);
+  }
+
+  /**
+   * Asserts that a country was selected.
+   */
+  protected function assertCountrySelected($country_code, $message) {
+    $this->assertRaw('<option value="' . $country_code . '" selected', $message);
+  }
+}
+
+/**
+ * Test AJAX functionality.
+ */
+class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
+
+  /**
+   * Machine name of the field.
+   */
+  protected $field_name = 'field_address';
+
+  /**
+   * Form element name for the country field.
+   */
+  protected $country_name = '';
+
+  /**
+   * Form element name for the administrative area field.
+   */
+  protected $state_name = '';
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Address Field AJAX',
+      'description' => 'Tests Address Field AJAX functionality.',
+      'group' => 'Scale Address Field',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('scale_addressfield');
+
+    // Create an Addressfield field.
+    $field = $this->createAddressfield($this->field_name);
+
+    // Attach the field to the User entity and require it on registration.
+    $field['settings'] = array('user_register_form' => 1);
+    $field['entity_type'] = 'user';
+    $field['label'] = 'Address';
+    $field['bundle'] = 'user';
+    $field['required'] = TRUE;
+    $this->createAddressfieldInstance($field);
+
+    // Set the US to the site's default country.
+    variable_set('site_default_country', 'US');
+
+    // Define some useful triggering elements and form input names.
+    $country = array(LANGUAGE_NONE, 0, 'country');
+    $this->country_name = $this->field_name . '[' . implode('][', $country) . ']';
+    $state = array(LANGUAGE_NONE, 0, 'administrative_area');
+    $this->state_name = $this->field_name . '[' . implode('][', $state) . ']';
+
+    // Enable the page cache.
+    variable_set('cache', 1);
+    variable_set('cache_lifetime', 3600);
+  }
+
+  function tearDown() {
+    // Delete the field generated in setUp().
+    $instance = field_info_instance('user', $this->field_name, 'user');
+    field_delete_instance($instance, TRUE);
+
+    // Disable the page cache.
+    variable_set('cache', 0);
+    variable_set('cache_lifetime', 0);
+    drupal_flush_all_caches();
+
+    parent::tearDown();
+  }
+
+  /**
+   * Tests proper suppression of validation errors on AJAX form submission.
+   */
+  public function testErrorSuppressionAJAX() {
+    // Visit the user registration page; this will be a cache MISS.
+    $this->drupalGet('user/register');
+    $cache = $this->drupalGetHeader('x-drupal-cache');
+    $this->assertTrue($cache == 'MISS', t('Page returned a cache MISS.'));
+
+    // The default country chosen was US; simulate the user selecting WA.
+    $form_input[$this->country_name] = 'US';
+    $form_input[$this->state_name] = 'WA';
+
+    // Simulate the user now selecting Brazil (performing an AJAX POST).
+    $form_input[$this->country_name] = 'BR';
+    $this->drupalPostAJAX(NULL, $form_input, $this->country_name);
+
+    // Ensure Brazil is now the selected country.
+    $this->assertCountrySelected('BR', t('Brazil now selected as country.'));
+
+    // Ensure users can select Brazilian administrative areas.
+    $this->assertText('Alagoas', t('Brazilian administrative areas present in form.'));
+
+    // Visit the user registration page again; This will be a cache HIT.
+    $this->drupalGet('user/register');
+
+    // The default country should be the US; simulate the user selecting WA.
+    $this->assertCountrySelected('US', t('United States selected as default country.'));
+    $form_input[$this->country_name] = 'US';
+    $form_input[$this->state_name] = 'WA';
+
+    // Select a different country with a select field for country.
+    $form_input[$this->country_name] = 'IT';
+    $ajax_commands = $this->drupalPostAJAX(NULL, $form_input, $this->country_name);
+    // Ensure users can select Italian administrative areas.
+    $this->assertText('Venezia', t('Italian administrative areas present in form.'));
+
+    // Ensure there are no errors on the administrative area field.
+    foreach ($ajax_commands as $command) {
+      if (isset($command['data'])) {
+        $this->assertTrue(strpos($command['data'], t('Error message')) === FALSE, t('No validation errors inserted after country selection.'));
+      }
+    }
+  }
+}
