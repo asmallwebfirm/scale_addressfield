@@ -4,3 +4,5 @@ package = Fields
 core = 7.x
 
 dependencies[] = addressfield
+
+files[] = scale_addressfield.test
