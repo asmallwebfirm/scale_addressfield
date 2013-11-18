@@ -48,6 +48,23 @@ abstract class ScaleAddressfieldWebTestCase extends DrupalWebTestCase {
   protected function assertCountrySelected($country_code, $message) {
     $this->assertRaw('<option value="' . $country_code . '" selected', $message);
   }
+
+  /**
+   * Asserts that a given select field does not contain any of the provided
+   * options.
+   */
+  protected function assertNoOptions($field, $values) {
+    $options = $this->getAllOptions($field);
+    $attributes = $field->attributes();
+
+    foreach ($values as $value) {
+      $this->assertFalse(in_array($value, $options), format_string('%value option not found in the %name field.', array(
+        '%value' => $value,
+        '%name' => $attributes['name'],
+      )));
+    }
+  }
+
 }
 
 /**
@@ -72,8 +89,8 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
 
   public static function getInfo() {
     return array(
-      'name' => 'Address Field AJAX',
-      'description' => 'Tests Address Field AJAX functionality.',
+      'name' => 'Scale Address Field AJAX',
+      'description' => 'Tests Scale Address Field AJAX functionality.',
       'group' => 'Scale Address Field',
     );
   }
@@ -126,7 +143,7 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
     // Visit the user registration page; this will be a cache MISS.
     $this->drupalGet('user/register');
     $cache = $this->drupalGetHeader('x-drupal-cache');
-    $this->assertTrue($cache == 'MISS', t('Page returned a cache MISS.'));
+    $this->assertTrue($cache == 'MISS', 'Page returned a cache MISS.');
 
     // The default country chosen was US; simulate the user selecting WA.
     $form_input[$this->country_name] = 'US';
@@ -137,16 +154,16 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
     $this->drupalPostAJAX(NULL, $form_input, $this->country_name);
 
     // Ensure Brazil is now the selected country.
-    $this->assertCountrySelected('BR', t('Brazil now selected as country.'));
+    $this->assertCountrySelected('BR', 'Brazil now selected as country.');
 
     // Ensure users can select Brazilian administrative areas.
-    $this->assertText('Alagoas', t('Brazilian administrative areas present in form.'));
+    $this->assertText('Alagoas', 'Brazilian administrative areas present in form.');
 
     // Visit the user registration page again; This will be a cache HIT.
     $this->drupalGet('user/register');
 
     // The default country should be the US; simulate the user selecting WA.
-    $this->assertCountrySelected('US', t('United States selected as default country.'));
+    $this->assertCountrySelected('US', 'United States selected as default country.');
     $form_input[$this->country_name] = 'US';
     $form_input[$this->state_name] = 'WA';
 
@@ -154,13 +171,61 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
     $form_input[$this->country_name] = 'IT';
     $ajax_commands = $this->drupalPostAJAX(NULL, $form_input, $this->country_name);
     // Ensure users can select Italian administrative areas.
-    $this->assertText('Venezia', t('Italian administrative areas present in form.'));
+    $this->assertText('Venezia', 'Italian administrative areas present in form.');
 
     // Ensure there are no errors on the administrative area field.
     foreach ($ajax_commands as $command) {
       if (isset($command['data'])) {
-        $this->assertTrue(strpos($command['data'], t('Error message')) === FALSE, t('No validation errors inserted after country selection.'));
+        $this->assertTrue(strpos($command['data'], 'Error message') === FALSE, 'No validation errors inserted after country selection.');
       }
     }
   }
+}
+
+/**
+ * Test administrative form tweaks.
+ */
+class ScaleAddressfieldAdminTestCase extends ScaleAddressfieldWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Scale Address Field Admin',
+      'description' => 'Tests Scale Address Field Admin tweaks.',
+      'group' => 'Scale Address Field',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('scale_addressfield');
+
+    // Create an admin user.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'access administration pages',
+      'administer site configuration',
+    ));
+    $this->drupalLogin($this->admin_user);
+  }
+
+  /**
+   * Tests that cache lifetime values are sufficiently limited.
+   */
+  public function testCacheLifetimeTweaks() {
+    // Visit the performance configuration page.
+    $this->drupalGet('admin/config/development/performance');
+
+    // Ensure we can see the proper fields.
+    $this->assertFieldByName('cache_lifetime', NULL, 'Found the cache lifetime field.');
+    $this->assertFieldByName('page_cache_maximum_age', NULL, 'Found the page cache max age field.');
+
+    // Ensure that cache lifetimes cannot be set above 6 hours.
+    $xpath = $this->buildXPathQuery('//select[@name=:name1 or @name=:name2]', array(
+      ':name1' => 'cache_lifetime',
+      ':name2' => 'page_cache_maximum_age',
+    ));
+    $fields = $this->xpath($xpath);
+    foreach ($fields as $field) {
+      $this->assertNoOptions($field, array(32400, 43200, 86400));
+    }
+  }
+
 }
