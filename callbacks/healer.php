@@ -18,6 +18,11 @@ define('DRUPAL_ROOT', $_SERVER['DOCUMENT_ROOT']);
 require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
 require_once DRUPAL_ROOT . '/includes/common.inc';
 
+// Ensure this callback is never cached.
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Bootstrap Drupal to the configuration stage.
 if (function_exists('drupal_bootstrap')) {
   drupal_bootstrap(DRUPAL_BOOTSTRAP_CONFIGURATION);
@@ -43,7 +48,7 @@ if (function_exists('drupal_bootstrap')) {
       $get = $_SERVER['HTTP_REFERER'] . $delimit . 'healer=' . md5(mt_rand(0, 100000));
 
       // The referer could be spoofed; let's make sure we're pointing inbound.
-      if (strpos($get, $GLOBALS['base_url']) === 0) {
+      if (strpos($get, $GLOBALS['base_root']) === 0) {
         $new_form_page = drupal_http_request($get, array(
           'headers' => array('referer' => $_SERVER['HTTP_REFERER']),
         ));
