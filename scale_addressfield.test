@@ -12,6 +12,55 @@
 abstract class ScaleAddressfieldWebTestCase extends DrupalWebTestCase {
 
   /**
+   * Machine name of the field.
+   */
+  protected $field_name = 'field_address';
+
+  /**
+   * Form element name for the country field.
+   */
+  protected $country_name = '';
+
+  /**
+   * Form element name for the administrative area field.
+   */
+  protected $state_name = '';
+
+  /**
+   * Sets up a fully configured addressfield instance.
+   */
+  protected function setUpAddressfield() {
+    // Create an Addressfield field.
+    $field = $this->createAddressfield($this->field_name);
+
+    // Attach the field to the User entity and require it on registration.
+    $field['settings'] = array('user_register_form' => 1);
+    $field['entity_type'] = 'user';
+    $field['label'] = 'Address';
+    $field['bundle'] = 'user';
+    $field['required'] = TRUE;
+    $this->createAddressfieldInstance($field);
+
+    // Set the US to the site's default country.
+    variable_set('site_default_country', 'US');
+
+    // Define some useful triggering elements and form input names.
+    $country = array(LANGUAGE_NONE, 0, 'country');
+    $this->country_name = $this->field_name . '[' . implode('][', $country) . ']';
+    $state = array(LANGUAGE_NONE, 0, 'administrative_area');
+    $this->state_name = $this->field_name . '[' . implode('][', $state) . ']';
+  }
+
+  /**
+   * Tears down the addressfield created in setUpAddressfield().
+   */
+  protected function tearDownAddressfield() {
+    // Delete the field generated in setUp().
+    $instance = field_info_instance('user', $this->field_name, 'user');
+    field_delete_instance($instance, TRUE);
+  }
+
+  /**
    * Creates a new Address Field instance.
    */
   protected function createAddressfield($name) {
@@ -98,25 +147,8 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
   function setUp() {
     parent::setUp('scale_addressfield');
 
-    // Create an Addressfield field.
-    $field = $this->createAddressfield($this->field_name);
-
-    // Attach the field to the User entity and require it on registration.
-    $field['settings'] = array('user_register_form' => 1);
-    $field['entity_type'] = 'user';
-    $field['label'] = 'Address';
-    $field['bundle'] = 'user';
-    $field['required'] = TRUE;
-    $this->createAddressfieldInstance($field);
-
-    // Set the US to the site's default country.
-    variable_set('site_default_country', 'US');
-
-    // Define some useful triggering elements and form input names.
-    $country = array(LANGUAGE_NONE, 0, 'country');
-    $this->country_name = $this->field_name . '[' . implode('][', $country) . ']';
-    $state = array(LANGUAGE_NONE, 0, 'administrative_area');
-    $this->state_name = $this->field_name . '[' . implode('][', $state) . ']';
+    // Set up a reasonable addressfield instance.
+    $this->setUpAddressfield();
 
     // Enable the page cache.
     variable_set('cache', 1);
@@ -124,9 +156,7 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
   }
 
   function tearDown() {
-    // Delete the field generated in setUp().
-    $instance = field_info_instance('user', $this->field_name, 'user');
-    field_delete_instance($instance, TRUE);
+    $this->tearDownAddressfield();
 
     // Disable the page cache.
     variable_set('cache', 0);
