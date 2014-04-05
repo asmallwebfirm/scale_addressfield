@@ -14,7 +14,17 @@
  */
 
 // Try and load Drupal's bootstrap.inc.
-define('DRUPAL_ROOT', $_SERVER['DOCUMENT_ROOT']);
+if (isset($_SERVER['DOCUMENT_ROOT']) && !empty($_SERVER['DOCUMENT_ROOT'])) {
+  define('DRUPAL_ROOT', $_SERVER['DOCUMENT_ROOT']);
+}
+else {
+  define('DRUPAL_ROOT', call_user_func(function($file) {
+    // If you're using this module, you know enough to know to change this
+    // to suit your particular installation. This covers the most common case.
+    $end = strpos($file, '/sites/all/modules/scale_addressfield/callbacks/healer.php');
+    return substr($file, 0, $end);
+  }, $_SERVER['SCRIPT_FILENAME']));
+}
 require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
 require_once DRUPAL_ROOT . '/includes/common.inc';
 
