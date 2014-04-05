@@ -19,7 +19,7 @@ require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
 require_once DRUPAL_ROOT . '/includes/common.inc';
 
 // Ensure this callback is never cached.
-header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
 
@@ -29,9 +29,14 @@ if (function_exists('drupal_bootstrap')) {
 
   // Only respond if valid parameters were provided.
   if (isset($_GET['fid']) && isset($_GET['fbid']) && isset($_SERVER['HTTP_REFERER'])) {
-    // Load form.inc and database.inc to check form cache staleness.
-    require_once DRUPAL_ROOT . '/includes/form.inc';
-    require_once DRUPAL_ROOT . '/includes/database/database.inc';
+    // Load database.inc to check form cache staleness. Note that we react
+    // slightly differently if we're testing, but the net effect is the same.
+    if (drupal_valid_test_ua()) {
+      _drupal_bootstrap_database();
+    }
+    else {
+      require_once DRUPAL_ROOT . '/includes/database/database.inc';
+    }
 
     // You shouldn't store your cache_form data in memory, but just in case you
     // do, here's the logic to ensure that's accounted for.
@@ -43,6 +48,9 @@ if (function_exists('drupal_bootstrap')) {
     // Check if a valid form cache entry still exists. If it does not, we'll
     // return a new, valid form_build_id.
     if (!cache_get('form_' . $_GET['fbid'], 'cache_form')) {
+      // Send a header, indicating staleness (mostly for tests).
+      header('X-Scale-Addressfield-Healer: Stale');
+
       $response = $_GET['fbid'];
       $delimit = strpos($_SERVER['HTTP_REFERER'], '?') !== FALSE ? '&' : '?';
       $get = $_SERVER['HTTP_REFERER'] . $delimit . 'healer=' . md5(mt_rand(0, 100000));
@@ -50,7 +58,10 @@ if (function_exists('drupal_bootstrap')) {
       // The referer could be spoofed; let's make sure we're pointing inbound.
       if (strpos($get, $GLOBALS['base_root']) === 0) {
         $new_form_page = drupal_http_request($get, array(
-          'headers' => array('referer' => $_SERVER['HTTP_REFERER']),
+          'headers' => array(
+            'Referer' => $_SERVER['HTTP_REFERER'],
+            'User-Agent' => variable_get('scale_addressfield_healer_ua', 'Drupal (+http://drupal.org/)'),
+          ),
         ));
 
         // Ensure that our request returned a response.
@@ -71,6 +82,7 @@ if (function_exists('drupal_bootstrap')) {
     }
     else {
       // Respond with the form_build_id passed if the cache entry exists.
+      header('X-Scale-Addressfield-Healer: Fresh');
       $response = $_GET['fbid'];
     }
 
