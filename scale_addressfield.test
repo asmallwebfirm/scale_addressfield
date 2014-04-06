@@ -12,6 +12,55 @@
 abstract class ScaleAddressfieldWebTestCase extends DrupalWebTestCase {
 
   /**
+   * Machine name of the field.
+   */
+  protected $field_name = 'field_address';
+
+  /**
+   * Form element name for the country field.
+   */
+  protected $country_name = '';
+
+  /**
+   * Form element name for the administrative area field.
+   */
+  protected $state_name = '';
+
+  /**
+   * Sets up a fully configured addressfield instance.
+   */
+  protected function setUpAddressfield() {
+    // Create an Addressfield field.
+    $field = $this->createAddressfield($this->field_name);
+
+    // Attach the field to the User entity and require it on registration.
+    $field['settings'] = array('user_register_form' => 1);
+    $field['entity_type'] = 'user';
+    $field['label'] = 'Address';
+    $field['bundle'] = 'user';
+    $field['required'] = TRUE;
+    $this->createAddressfieldInstance($field);
+
+    // Set the US to the site's default country.
+    variable_set('site_default_country', 'US');
+
+    // Define some useful triggering elements and form input names.
+    $country = array(LANGUAGE_NONE, 0, 'country');
+    $this->country_name = $this->field_name . '[' . implode('][', $country) . ']';
+    $state = array(LANGUAGE_NONE, 0, 'administrative_area');
+    $this->state_name = $this->field_name . '[' . implode('][', $state) . ']';
+  }
+
+  /**
+   * Tears down the addressfield created in setUpAddressfield().
+   */
+  protected function tearDownAddressfield() {
+    // Delete the field generated in setUp().
+    $instance = field_info_instance('user', $this->field_name, 'user');
+    field_delete_instance($instance, TRUE);
+  }
+
+  /**
    * Creates a new Address Field instance.
    */
   protected function createAddressfield($name) {
@@ -98,25 +147,8 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
   function setUp() {
     parent::setUp('scale_addressfield');
 
-    // Create an Addressfield field.
-    $field = $this->createAddressfield($this->field_name);
-
-    // Attach the field to the User entity and require it on registration.
-    $field['settings'] = array('user_register_form' => 1);
-    $field['entity_type'] = 'user';
-    $field['label'] = 'Address';
-    $field['bundle'] = 'user';
-    $field['required'] = TRUE;
-    $this->createAddressfieldInstance($field);
-
-    // Set the US to the site's default country.
-    variable_set('site_default_country', 'US');
-
-    // Define some useful triggering elements and form input names.
-    $country = array(LANGUAGE_NONE, 0, 'country');
-    $this->country_name = $this->field_name . '[' . implode('][', $country) . ']';
-    $state = array(LANGUAGE_NONE, 0, 'administrative_area');
-    $this->state_name = $this->field_name . '[' . implode('][', $state) . ']';
+    // Set up a reasonable addressfield instance.
+    $this->setUpAddressfield();
 
     // Enable the page cache.
     variable_set('cache', 1);
@@ -124,9 +156,7 @@ class ScaleAddressfieldAJAXTestCase extends ScaleAddressfieldWebTestCase {
   }
 
   function tearDown() {
-    // Delete the field generated in setUp().
-    $instance = field_info_instance('user', $this->field_name, 'user');
-    field_delete_instance($instance, TRUE);
+    $this->tearDownAddressfield();
 
     // Disable the page cache.
     variable_set('cache', 0);
@@ -228,4 +258,169 @@ class ScaleAddressfieldAdminTestCase extends ScaleAddressfieldWebTestCase {
     }
   }
 
+}
+
+/**
+ * Test Healer functionality.
+ */
+class ScaleAddressfieldHealerTestCase extends ScaleAddressfieldWebTestCase {
+
+  /**
+   * The path to the Scale Addressfield healer callback.
+   * @var string
+   */
+  protected $healer;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Scale Address Field Healer',
+      'description' => 'Tests Scale Address Field Healer functionality.',
+      'group' => 'Scale Address Field',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('scale_addressfield');
+
+    // Set up a reasonable addressfield instance.
+    $this->setUpAddressfield();
+
+    // Determine the path to the healer.
+    $this->healer = drupal_get_path('module', 'scale_addressfield') . '/callbacks/healer.php';
+
+    // Set a test user-agent string.
+    variable_set('scale_addressfield_healer_ua', drupal_generate_test_ua($this->databasePrefix));
+
+
+    // Enable the page cache.
+    variable_set('cache', 1);
+    variable_set('cache_lifetime', 3600);
+  }
+
+  function tearDown() {
+    $this->tearDownAddressfield();
+
+    // Disable the page cache.
+    variable_set('cache', 0);
+    variable_set('cache_lifetime', 0);
+    variable_del('scale_addressfield_healer_ua');
+    drupal_flush_all_caches();
+
+    parent::tearDown();
+  }
+
+  /**
+   * Asserts that the headers returned by the healer are valid.
+   *
+   * @param array $headers
+   *   An array of HTTP response headers, keyed by header name.
+   *
+   * @param string $x_stale
+   *   The expected value of the "x-scale-addressfield-healer" header.
+   */
+  protected function assertValidHealerHeaders($headers, $x_stale = NULL) {
+    $this->assertEqual($headers['content-type'], 'application/json', 'Correct content-type was returned');
+    $this->assertEqual($headers['expires'], 0, 'Correct "expires" header was returned.');
+    $this->assertEqual($headers['pragma'], 'no-cache', 'Correct "pragma" header was returned.');
+    $this->assertEqual($headers['cache-control'], 'no-cache, no-store, must-revalidate, max-age=0', 'Correct "cache-control" header was returned.');
+
+    if ($x_stale) {
+      $this->assertEqual($headers['x-scale-addressfield-healer'], $x_stale, format_string('The healer responded with the expected @xstale header.', array(
+        '@xstale' => $x_stale,
+      )));
+    }
+  }
+
+  /**
+   * Tests that the healer is placed and configured correctly on pages.
+   */
+  public function testHealerPlacement() {
+    // Ensure proper placement of healer JavaScript and settings / defaults.
+    $this->drupalGet('user/register');
+    $full_settings = $this->drupalGetSettings();
+    $settings = $full_settings['scale_addressfield'];
+    $this->assertEqual($settings['interval'], 300, 'Healer defaulted to an interval of 300s.');
+    $this->assertEqual($settings['callback'], '/' . $this->healer, 'Healer callback configured correctly.');
+    $this->assertTrue(array_search('user_register_form', $settings['enabled_forms']) !== FALSE, 'Form correctly configured to use the healer.');
+    $this->assertRaw('scale_addressfield/js/healer.js', 'Healer JS found on page.');
+
+    // Ensure that configuration of the interval is reflected in the settings.
+    variable_set('scale_addressfield_ping_interval', 120);
+    drupal_flush_all_caches();
+    $this->drupalGet('user/register');
+    $full_settings = $this->drupalGetSettings();
+    $settings = $full_settings['scale_addressfield'];
+    $this->assertEqual($settings['interval'], 120, 'Healer updated with interval of 120s.');
+
+    // Ensure that it's possible to turn of the healer entirely.
+    variable_set('scale_addressfield_ping_interval', 0);
+    drupal_flush_all_caches();
+    $this->drupalGet('user/register');
+    $full_settings = $this->drupalGetSettings();
+    $this->assertFalse(isset($full_settings['scale_addressfield']), 'Healer was successfully disabled.');
+    $this->assertNoRaw('scale_addressfield/js/healer.js', 'Healer JS found on page.');
+
+    // Return to defaults.
+    variable_del('scale_addressfield_ping_interval');
+  }
+
+  /**
+   * Tests that the healer callback functions as expected.
+   */
+  public function testHealerCallback() {
+    $referer = array('Referer: ' . $GLOBALS['base_root'] . '/user/register');
+    $query_defaults = array(
+      'fbid' => 'non-empty',
+      'fid' => 'user-register-form',
+    );
+
+    // Hitting the healer with no params results in an empty response.
+    $this->drupalGet($this->healer);
+    $response = drupal_json_decode($this->drupalGetContent());
+    $this->assertEqual($response, array(), 'Request to the healer with no params resulted in an empty response.');
+    $this->assertValidHealerHeaders($this->drupalGetHeaders());
+
+    // Hitting the healer with all required (but meaningless) params results in
+    // the expected "trigger" response AJAX response.
+    $this->drupalGet($this->healer, array('query' => $query_defaults), $referer);
+    $response = drupal_json_decode($this->drupalGetContent());
+    $this->assertValidHealerHeaders($this->drupalGetHeaders(), 'Stale');
+    $this->assertEqual($response[0]['method'], 'trigger', 'The healer returned a "trigger" method.');
+    $this->assertEqual($response[0]['command'], 'invoke', 'The healer returned an "invoke" command.');
+    $this->assertEqual($response[0]['selector'], '#' . $query_defaults['fid'], 'The healer responded with the correct selector.');
+    $this->assertEqual($response[0]['arguments'][0], 'pinged', 'The healer responded with the correct event name.');
+
+    // Hitting the healer with a legitimate fbid results in it responding back
+    // with the exact same fbid and a positive header.
+    $query_defaults['fbid'] = '12345abcde';
+    cache_set('form_' . $query_defaults['fbid'], array('data'), 'cache_form');
+    $this->drupalGet($this->healer, array('query' => $query_defaults), $referer);
+    $response = drupal_json_decode($this->drupalGetContent());
+    $this->assertValidHealerHeaders($this->drupalGetHeaders(), 'Fresh');
+    $this->assertEqual($response[0]['arguments'][1][0], $query_defaults['fbid'], 'The healer responded with the correct form build ID.');
+
+    // Hitting the healer with the same fbid, but after expiry results in it
+    // responding back with a negative header and a new fbid.
+    cache_clear_all('form_' . $query_defaults['fbid'], 'cache_form');
+    $this->drupalGet($this->healer, array('query' => $query_defaults), $referer);
+    $response = drupal_json_decode($this->drupalGetContent());
+    $this->assertValidHealerHeaders($this->drupalGetHeaders(), 'Stale');
+    $fresh_fbid = $response[0]['arguments'][1][0];
+    $this->assertNotEqual($fresh_fbid, $query_defaults['fbid'], 'The healer responded with a new form build ID.');
+
+    // Hitting the healer with the same, previous fbid results in it responding
+    // back with yet another fbid.
+    $this->drupalGet($this->healer, array('query' => $query_defaults), $referer);
+    $response = drupal_json_decode($this->drupalGetContent());
+    $this->assertValidHealerHeaders($this->drupalGetHeaders(), 'Stale');
+    $this->assertNotEqual($response[0]['arguments'][1][0], $query_defaults['fbid'], 'The healer responded with a new form build ID.');
+    $this->assertNotEqual($response[0]['arguments'][1][0], $fresh_fbid, 'The fbid provided was not previously returned.');
+
+    // Hitting the healer with the generated fbid results in a "fresh" response.
+    $query_defaults['fbid'] = $fresh_fbid;
+    $this->drupalGet($this->healer, array('query' => $query_defaults), $referer);
+    $response = drupal_json_decode($this->drupalGetContent());
+    $this->assertValidHealerHeaders($this->drupalGetHeaders(), 'Fresh');
+    $this->assertEqual($response[0]['arguments'][1][0], $query_defaults['fbid'], 'The healer responded with the correct form build ID.');
+  }
 }
