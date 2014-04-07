@@ -9,7 +9,7 @@ mysql:
   encoding: utf8
 
 install:
-  # install drush
+  # install drush 5.x (because 6.x's test-run doesn't exit with proper status code).
   - pear channel-discover pear.drush.org
   - pear install drush/drush-5.10.0.0
   - phpenv rehash
@@ -37,5 +37,4 @@ before_script:
   - sleep 4
   - drush vset --yes simpletest_verbose FALSE 
 
-script:
-  - drush test-run 'Scale Address Field' --uri=http://127.0.0.1:8080
+script: drush test-run 'Scale Address Field' --uri=http://127.0.0.1:8080
