@@ -63,32 +63,32 @@ function scale_addressfield_field_widget_form_alter(&$element, &$form_state, $co
       // Add another country validation handler the ensures Address Field
       // doesn't unnecessarily trigger form rebuilds.
       $country['#element_validate'][] = 'scale_addressfield_prevent_rebuild';
+    }
 
-      // Allow the form healer to be disabled when the ping interval is set to 0.
-      if ($interval = variable_get('scale_addressfield_ping_interval', 300)) {
-        // Ensure we have a JS attachment to add some custom settings.
-        if (!isset($country['#attached']['js'])) {
-          $country['#attached']['js'] = array();
-        }
-
-        // Note this form as an enabled form for the healer.
-        $country['#attached']['js'][] = array(
-          'type' => 'setting',
-          'data' => array(
-            'scale_addressfield' => array(
-              'interval' => $interval,
-              'callback' => base_path() . $module_path . '/callbacks/healer.php',
-              'enabled_forms' => array($form_state['build_info']['form_id']),
-            ),
-          ),
-        );
-
-        // Attach application logic that runs form health checks at an interval.
-        $country['#attached']['js'][] = array(
-          'type' => 'file',
-          'data' => $module_path . '/js/healer.js',
-        );
+    // Allow the form healer to be disabled when the ping interval is set to 0.
+    if ($interval = variable_get('scale_addressfield_ping_interval', 300)) {
+      // Ensure we have a JS attachment to add some custom settings.
+      if (!isset($country['#attached']['js'])) {
+        $country['#attached']['js'] = array();
       }
+
+      // Note this form as an enabled form for the healer.
+      $country['#attached']['js'][] = array(
+        'type' => 'setting',
+        'data' => array(
+          'scale_addressfield' => array(
+            'interval' => $interval,
+            'callback' => base_path() . $module_path . '/callbacks/healer.php',
+            'enabled_forms' => array($form_state['build_info']['form_id']),
+          ),
+        ),
+      );
+
+      // Attach application logic that runs form health checks at an interval.
+      $country['#attached']['js'][] = array(
+        'type' => 'file',
+        'data' => $module_path . '/js/healer.js',
+      );
     }
   }
 }
