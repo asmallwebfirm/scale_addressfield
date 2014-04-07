@@ -32,7 +32,6 @@ require_once DRUPAL_ROOT . '/includes/common.inc';
 header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
-die();
 
 // Bootstrap Drupal to the configuration stage.
 if (function_exists('drupal_bootstrap')) {
