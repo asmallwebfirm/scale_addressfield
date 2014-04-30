@@ -1,0 +1,431 @@
+<?php
+
+/**
+ * @file
+ * Hooks and functions for the Scale Addressfield module.
+ */
+
+/**
+ * Implements hook_ctools_plugin_post_alter().
+ */
+function scale_addressfield_ctools_plugin_post_alter(&$plugin, &$info) {
+  if ($info['type'] == 'format' && $info['module'] == 'addressfield') {
+    // Limit ourselves to only the dynamic country-specific addressfield.
+    if ($plugin['format callback'] == 'addressfield_format_address_generate') {
+      $plugin['format callback'] = 'scale_addressfield_override_format';
+      $plugin['path'] = drupal_get_path('module', 'scale_addressfield');
+      $plugin['file'] = 'scale_addressfield.address.inc';
+    }
+  }
+}
+
+/**
+ * Element validation handler for address field form elements that conditionally
+ * exist.
+ */
+function scale_addressfield_validate_conditional_element($element, &$form, &$form_state) {
+  // Get the submitted country value from the current form submission.
+  $country_parents = $element['#parents'];
+  $current_field = array_pop($country_parents);
+  $country_parents[] = 'country';
+  $country_parents[] = '#value';
+  $country = drupal_array_get_nested_value($form_state, $country_parents);
+
+  // Check if this field is even a thing for this country.
+  if (!scale_addressfield_country_has_field($country, $current_field)) {
+    // Determine what the error message likely says.
+    $message = $element['#title'] . ' field is required.';
+
+    // Get rid of the error message.
+    scale_addressfield_remove_element_form_error($element, $message);
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function scale_addressfield_menu() {
+  $menu['addressfield/config.json'] = array(
+    'title' => 'Address field configuration JSON',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'scale_addressfield_get_address_configuration',
+    'page arguments' => array('json'),
+    'delivery callback' => 'scale_addressfield_deliver_json',
+    'access callback' => TRUE,
+  );
+  return $menu;
+}
+
+/**
+ * Implements hook_library().
+ */
+function scale_addressfield_library() {
+  $path = drupal_get_path('module', 'scale_addressfield');
+  $items['jquery.addressfield'] = array(
+    'title' => t('Adressfield jQuery plugin'),
+    'version' => '0.0.1',
+    'js' => array(
+       $path . '/js/addressfield.jquery.js' => array(
+         'group' => JS_LIBRARY,
+         'weight' => -18,
+       ),
+    ),
+  );
+  return $items;
+}
+
+/**
+ * Packages and sends the result of a page callback to the browser as JSON.
+ */
+function scale_addressfield_deliver_json($page_callback_result) {
+  drupal_add_http_header('Content-Type', 'application/json; charset=utf-8');
+  drupal_add_http_header('Content-Language', $GLOBALS['language']->language);
+  print $page_callback_result;
+  drupal_page_footer();
+}
+
+/**
+ * Returns the fully altered, localized configuration for the address field in a
+ * specified format and language.
+ *
+ * @param string $format
+ *   The format in which to return configurations. One of "php" or "json".
+ *
+ * @param string $language
+ *   (Optional) A language code specifying the language in which configs (and
+ *   more importantly, labels) should be returned. Defaults to the current
+ *   language configured in the global scope.
+ *
+ * @param bool $refresh
+ *   (Optional) TRUE if you want to manually regenerate the strings, rather than
+ *   pulling them from cache. Defaults to FALSE.
+ *
+ * @return mixed
+ *   If the "PHP" format is specified, an associated array of configurations is
+ *   returned. If "JSON" is specified, the same will be returned, but in JSON.
+ */
+function scale_addressfield_get_address_configuration($format, $language = NULL, $refresh = FALSE) {
+  $return = &drupal_static(__FUNCTION__, array());
+  $lang = isset($language) ? $language : $GLOBALS['language']->language;
+
+  if ($refresh || !isset($return[$lang][$format])) {
+    $cid = implode(':', array('scale_addressfield', 'address_config', $lang));
+    if ($refresh || !$data = cache_get($cid, 'cache')) {
+      // Load default configurations and decode them.
+      $json = scale_addressfield_get_default_address_configuration();
+      $return[$lang]['php'] = drupal_json_decode($json);
+
+      // Respect hook_countries_alter() / configured countries in Drupal.
+      include_once DRUPAL_ROOT . '/includes/locale.inc';
+      $return[$lang]['php']['options'] = array_intersect_key($return[$lang]['php']['options'], country_get_list());
+
+      // Run the decoded configuration through a Drupal alter.
+      drupal_alter('addressfield_config', $return[$lang]['php']);
+
+      // Do not run through localization for the site default language.
+      if ($lang !== language_default('language')) {
+        // We're dealing with end-user strings that we need to localize.
+        scale_addressfield_localize_configuration($return[$lang]['php'], $lang);
+      }
+
+      // Add in "-- None --" style default options to all admin region selects.
+      scale_addressfield_add_default_option_none($return[$lang]['php']);
+
+      // Copy all changes back over to the JSON side.
+      $return[$lang]['json'] = drupal_json_encode($return[$lang]['php']);
+
+      // Stash a copy in cache.
+      cache_set($cid, $return[$lang], 'cache', CACHE_PERMANENT);
+    }
+    else {
+      $return[$lang] = $data->data;
+    }
+  }
+
+  return $return[$lang][$format];
+}
+
+/**
+ * Localizes a given configuration into the specified language.
+ *
+ * @param array $configs
+ *   The PHP representation (an array) of address configurations.
+ *
+ * @param string $language
+ *   The language code representing the target language for localization.
+ */
+function scale_addressfield_localize_configuration(&$configs, $language) {
+  // No need to waste cycles localizing if i18n string isn't even available.
+  if (function_exists('i18n_string')) {
+    // Global, top-level configuration.
+    $context = scale_addressfield_i18n_context(array('country', 'label'));
+    $configs['label'] = scale_addressfield_translate($context, $configs['label'], $language);
+
+    // Iterate through all countries and their configurations.
+    foreach ($configs['options'] as $country => $config) {
+      // Country label.
+      if (isset($config['label'])) {
+        $context = scale_addressfield_i18n_context(array('country', 'options', $country, 'label'));
+        $configs['options'][$country]['label'] = scale_addressfield_translate($context, $config['label'], $language);
+      }
+
+      // Iterate through all fields, check for labels.
+      foreach ($config as $field_name => $definition) {
+        // Translate field name labels.
+        if (is_array($definition)) {
+          if (isset($definition['label'])) {
+            $context = scale_addressfield_i18n_context(array('country', 'options', $country, $field_name, 'label'));
+            $configs['options'][$country][$field_name]['label'] = scale_addressfield_translate($context, $definition['label'], $language);
+          }
+          // Special case for locality; go down another layer.
+          elseif ($field_name == 'locality') {
+            foreach ($definition as $sub_field_name => $sub_definition) {
+              if (isset($sub_definition['label'])) {
+                $context = scale_addressfield_i18n_context(array('country', 'options', $country, $field_name, $sub_field_name, 'label'));
+                $configs['options'][$country][$field_name][$sub_field_name]['label'] = scale_addressfield_translate($context, $sub_definition['label'], $language);
+              }
+
+              // If the field has options, translate their user-facing strings.
+              if (isset($sub_definition['options']) && is_array($sub_definition['options'])) {
+                foreach ($sub_definition['options'] as $code => $value) {
+                  $context = scale_addressfield_i18n_context(array('country', 'options', $country, $field_name, $sub_field_name, 'options', $code));
+                  $configs['options'][$country][$field_name][$sub_field_name]['options'][$code] = scale_addressfield_translate($context, $value, $language);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Adds a "-- none --" style option to all administrative area selects, as the
+ * Address field module did.
+ *
+ * @param array $config
+ *   The PHP representation (an array) of address configurations.
+ */
+function scale_addressfield_add_default_option_none(&$configs) {
+  foreach ($configs['options'] as $country => $config) {
+    if (isset($config['locality']['administrativearea']['options'])) {
+      $configs['options'][$country]['locality']['administrativearea']['options'] = array_merge(array(
+          '' => t('--')
+        ), $configs['options'][$country]['locality']['administrativearea']['options']);
+    }
+  }
+}
+
+/**
+ * Returns a translated address field string, given the string and some context.
+ *
+ * @param string $context
+ *   The "context" of a given address field string.
+ *
+ * @param string $string
+ *   The string to be translated.
+ *
+ * @param string $langcode
+ *   (Optional) The language code of the translation target language. If none is
+ *   provided, it will default to the global scope language.
+ *
+ * @return string
+ *   The translated version of $string, or just $string if none is available.
+ */
+function scale_addressfield_translate($context, $string, $langcode = NULL) {
+  return function_exists('i18n_string') ? i18n_string($context, $string, array('langcode' => $langcode)) : $string;
+}
+
+/**
+ * Refreshes strings from JSON config when a refresh is triggered through
+ * admin/config/regional/translate/i18n_string.
+ *
+ * @param array $configs
+ *   An array of address field configurations to be translated. You probably
+ *   shouldn't use this; just used for recursion.
+ *
+ * @param array $parents
+ *   An array of parent array keys, used to generate i18n string context.
+ *
+ * @see scale_addressfield_i18n_string_refresh()
+ */
+function scale_addressfield_i18n_update_strings(array $configs = array(), array $parents = array()) {
+  if (!function_exists('i18n_string_update')) {
+    return;
+  }
+
+  // Empty $configs array means we're refreshing all. Get global configs.
+  if ($configs === array()) {
+    $configs = scale_addressfield_get_address_configuration('php', language_default('language'), TRUE);
+    $parents = array('country');
+  }
+
+  // Iterate through all elements in the array.
+  foreach ($configs as $key => $value) {
+    // If we still have a ways to go, continue recursing.
+    if ((array) $value === $value) {
+      $new_parents = $parents;
+      $new_parents[] = $key;
+      scale_addressfield_i18n_update_strings($value, $new_parents);
+    }
+    // In the base case, update the string.
+    else {
+      $new_parents = $parents;
+      $new_parents[] = $key;
+      $i18n_context = scale_addressfield_i18n_context($new_parents);
+      i18n_string_update($i18n_context, $value);
+    }
+  }
+}
+
+/**
+ * Helper function to get an i18n string context, given an array of strings to
+ * append to the base context.
+ *
+ * @param array $append
+ *   An array of additional context keys to append.
+ *
+ * @return string
+ *   A string, suitable for use as a context in i18n_string_update().
+ */
+function scale_addressfield_i18n_context($append) {
+  $i18n_context = array('addressfield', 'form');
+  return implode(':', array_merge($i18n_context, $append));
+}
+
+/**
+ * Returns the contents of the JSON file containing address configurations.
+ *
+ * @return string
+ *   The full contents of the default address configuration JSON file.
+ */
+function scale_addressfield_get_default_address_configuration() {
+  $default = drupal_get_path('module', 'scale_addressfield');
+  $default .= DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR;
+  $default .= 'address-formats.json';
+  $json_file = variable_get('scale_addressfield_config_json', $default);
+  return file_get_contents($json_file);
+}
+
+/**
+ * Returns a global "default" configuration for country display.
+ */
+function scale_addressfield_get_address_configuration_default() {
+  return array(
+    'thoroughfare' => array('label' => 'Address 1'),
+    'premise' => array('label' => 'Address 2'),
+    'locality' => array('label' => 'City'),
+  );
+}
+
+/**
+ * Helper function that checks if a given country uses the given field in their
+ * addresses.
+ *
+ * @param string $country
+ *   The country code of the given country.
+ *
+ * @param string $field
+ *   The xNAL name of the given field.
+ *
+ * @return bool
+ *   TRUE if the country uses the field in their addresses. FALSE otherwise.
+ */
+function scale_addressfield_country_has_field($country, $field) {
+  // Get the configs for this country.
+  $configs = scale_addressfield_get_address_configuration('php');
+
+  // Run the field through our map.
+  $field = scale_addressfield_get_xnal_field_name($field);
+
+  if (isset($configs['options'][$country][$field])) {
+    return TRUE;
+  }
+  // Also take into account nested fields (e.g. under locality).
+  elseif (isset($configs['options'][$country])) {
+    foreach ($configs['options'][$country] as $name => $value) {
+      if (is_array($value) && isset($value[$field])) {
+        return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Helper function that maps "true" xnal field namespaces to those used by the
+ * Drupal Addressfield module (mostly maps underscores and things).
+ *
+ * @param string $field
+ *   The name of the field as used by Drupal addressfield.
+ *
+ * @return string
+ *   The name of the field as defined by the xNAL standard.
+ */
+function scale_addressfield_get_xnal_field_name($field) {
+  $map = array(
+    'locality_block' => 'locality',
+    'locality' => 'localityname',
+    'postal_code' => 'postalcode',
+    'administrative_area' => 'administrativearea',
+  );
+
+  return isset($map[$field]) ? $map[$field] : $field;
+}
+
+/**
+ * Helper function to remove errors from the global form state for a given form
+ * element.
+ */
+function scale_addressfield_remove_element_form_error($element, $message) {
+  // Check that the error has even been lodged.
+  if ($error = form_get_error($element) AND $error == t($message)) {
+    // Remove it from the global error state.
+    $key = implode('][', $element['#parents']);
+    $errors = &drupal_static('form_set_error');
+    unset($errors[$key]);
+
+    // There was also likely a message set. Remove it too.
+    scale_addressfield_remove_message('error', $message);
+  }
+}
+
+/**
+ * Helper function to remove messages previously set elsewhere by Drupal.
+ *
+ * @param string $type
+ *   The type of message to delete (error, status, etc).
+ * @param string $message
+ *   The message (in English) that should not be displayed to the user.
+ * @param array $args
+ *   Any arguments to pass to the translation function.
+ */
+function scale_addressfield_remove_message($type, $message, $args = array()) {
+  $message_search = t($message, $args);
+
+  // The array_search function expects an array.
+  if (isset($_SESSION['messages'][$type]) && is_array($_SESSION['messages'][$type])) {
+    $message_key = array_search($message_search, $_SESSION['messages'][$type]);
+
+    if ($message_key !== FALSE) {
+      // Remove the offending message.
+      unset($_SESSION['messages'][$type][$message_key]);
+
+      // If we deleted the only message, unset the message array.
+      if (count($_SESSION['messages'][$type]) == 0) {
+        unset($_SESSION['messages'][$type]);
+
+        // If we deleted the only message at all, unset the whole thing.
+        if (count($_SESSION['messages']) == 0) {
+          unset($_SESSION['messages']);
+        }
+      }
+      // Otherwise, reset the array keys. Drupal expects them neatly in order.
+      else {
+        $_SESSION['messages'][$type] = array_values($_SESSION['messages'][$type]);
+      }
+    }
+  }
+}

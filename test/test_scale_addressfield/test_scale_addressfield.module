@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Contains code used to test overrides to Scale Addressfield.
+ */
+
+
+/**
+ * Implements hook_addressfield_config_alter().
+ *
+ * Ensures that elements in the given configuration can be altered and added.
+ */
+function test_scale_addressfield_addressfield_config_alter(&$config) {
+  // Override country label.
+  $config['label'] = 'Altered country';
+
+  if (isset($config['options']['US']['locality']['administrativearea'])) {
+    // Put a bird on it.
+    $us_states = &$config['options']['US']['locality']['administrativearea'];
+    $us_states['options']['OR'] = 'Portland';
+    $us_states['label'] = 'State, Yo';
+  }
+
+  // A whole new world.
+  $config['options']['CA*'] = $config['options']['CA'];
+}
+
+/**
+ * Implements hook_countries_alter().
+ */
+function test_scale_addressfield_countries_alter(&$countries) {
+  // We do not ship items to France!
+  unset($countries['FR']);
+}

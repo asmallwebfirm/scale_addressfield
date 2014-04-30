@@ -1,0 +1,435 @@
+<?php
+
+/**
+ * @file
+ * Scale Address Field tests.
+ */
+
+
+/**
+ * Common parent class containing common helpers.
+ */
+abstract class ScaleAddressfieldWebTestCase extends DrupalWebTestCase {
+
+  /**
+   * Machine name of the field.
+   */
+  protected $field_name = 'field_address';
+
+  /**
+   * Form element name for the country field.
+   */
+  protected $country_name = '';
+
+  /**
+   * Form element name for the administrative area field.
+   */
+  protected $state_name = '';
+
+  /**
+   * Sets up a fully configured addressfield instance.
+   */
+  protected function setUpAddressfield() {
+    // Create an Addressfield field.
+    $field = $this->createAddressfield($this->field_name);
+
+    // Attach the field to the User entity and require it on registration.
+    $field['settings'] = array('user_register_form' => 1);
+    $field['entity_type'] = 'user';
+    $field['label'] = 'Address';
+    $field['bundle'] = 'user';
+    $field['required'] = TRUE;
+    $this->createAddressfieldInstance($field);
+
+    // Set the US to the site's default country.
+    variable_set('site_default_country', 'US');
+
+    // Define some useful triggering elements and form input names.
+    $country = array(LANGUAGE_NONE, 0, 'country');
+    $this->country_name = $this->field_name . '[' . implode('][', $country) . ']';
+    $state = array(LANGUAGE_NONE, 0, 'administrative_area');
+    $this->state_name = $this->field_name . '[' . implode('][', $state) . ']';
+  }
+
+  /**
+   * Tears down the addressfield created in setUpAddressfield().
+   */
+  protected function tearDownAddressfield() {
+    // Delete the field generated in setUp().
+    $instance = field_info_instance('user', $this->field_name, 'user');
+    field_delete_instance($instance, TRUE);
+  }
+
+  /**
+   * Creates a new Address Field instance.
+   */
+  protected function createAddressfield($name) {
+    $field = array(
+      'field_name' => $name,
+      'type' => 'addressfield',
+      'module' => 'addressfield',
+    );
+
+    return field_create_field($field);
+  }
+
+  /**
+   * Attaches an Addressfield field to the user entity.
+   */
+  protected function createAddressfieldInstance($instance) {
+    $instance['widget'] = array(
+      'weight' => 7,
+      'type' => 'addressfield_standard',
+      'module' => 'addressfield',
+      'active' => 1,
+      'settings' => array(
+        'available_countries' => array(),
+        'format_handlers' => array('address' => 'address'),
+      ),
+    );
+
+    return field_create_instance($instance);
+  }
+
+  /**
+   * Asserts that a select option exists.
+   */
+  protected function assertOption($value, $message) {
+    $this->assertRaw('<option value="' . $value . '"', $message);
+  }
+
+  /**
+   * Asserts that a select option does not exist.
+   */
+  protected function assertNoOption($value, $message) {
+    $this->assertNoRaw('<option value="' . $value . '"', $message);
+  }
+
+  /**
+   * Asserts that a given select field does not contain any of the provided
+   * options.
+   */
+  protected function assertNoOptions($field, $values) {
+    $options = $this->getAllOptions($field);
+    $attributes = $field->attributes();
+
+    foreach ($values as $value) {
+      $this->assertFalse(in_array($value, $options), format_string('%value option not found in the %name field.', array(
+        '%value' => $value,
+        '%name' => $attributes['name'],
+      )));
+    }
+  }
+
+  /**
+   * Asserts that elements for a given XPath have a given class.
+   *
+   * @param string $xpath
+   *   The XPath used to find the element(s).
+   *
+   * @param $class
+   *   The HTML class whose existence you are asserting.
+   *
+   * @param $message
+   *   The message to be used for this assertion.
+   *
+   * @param string $group
+   *   (Optional) The group to which this message belongs.
+   *
+   * @return bool
+   *   TRUE on pass, FALSE on failure.
+   */
+  protected function assertHasClassByXpath($xpath, $class, $message, $group = 'Other') {
+    $elements = $this->xpath($xpath);
+    $has_class = FALSE;
+    $class = ' ' . $class . ' ';
+
+    if ($elements) {
+      foreach ($elements as $element) {
+        if (isset($element['class']) && strpos($element['class'], $class) !== FALSE) {
+          $has_class = TRUE;
+        }
+        else {
+          $has_class = FALSE;
+        }
+      }
+    }
+
+    return $this->assertTrue($has_class, $message);
+  }
+}
+
+/**
+ * Test form render functionality.
+ */
+class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
+
+  /**
+   * An array of field names that should exist on the page by default, keyed by
+   * their xNAL name (which should exist as a class / Drupal.settings item).
+   */
+  protected $fields = array(
+    'thoroughfare' => 'field_address[und][0][thoroughfare]',
+    'premise' => 'field_address[und][0][premise]',
+    'street_block' => NULL,
+    'localityname' => 'field_address[und][0][locality]',
+    'administrativearea' => 'field_address[und][0][administrative_area]',
+    'postalcode' => 'field_address[und][0][postal_code]',
+    'locality' => NULL,
+  );
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Scale Address Field Form Render',
+      'description' => 'Tests Scale Address Field form render functionality.',
+      'group' => 'Scale Address Field',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('scale_addressfield');
+
+    // Set up a reasonable addressfield instance.
+    $this->setUpAddressfield();
+
+    // Enable the page cache.
+    variable_set('cache', 1);
+    variable_set('cache_lifetime', 3600);
+  }
+
+  function tearDown() {
+    $this->tearDownAddressfield();
+
+    // Disable the page cache.
+    variable_set('cache', 0);
+    variable_set('cache_lifetime', 0);
+    drupal_flush_all_caches();
+
+    parent::tearDown();
+  }
+
+  /**
+   * Tests basic form rendering and error handling.
+   */
+  public function testFormRender() {
+    // Visit the user registration page; this will be a cache MISS.
+    $this->drupalGet('user/register');
+    $cache = $this->drupalGetHeader('x-drupal-cache');
+    $this->assertTrue($cache == 'MISS', 'Page returned a cache MISS.');
+
+    // Get our Drupal.settings object.
+    $settings = $this->drupalGetSettings();
+    $settings = $settings['scale_addressfield'];
+
+    // Ensure that no cache_form entry was generated on render.
+    $count = (int) db_query('SELECT COUNT(*) FROM {cache_form}')->fetchField();
+    $this->assertTrue($count === 0, 'No cache_form entry was created on render');
+
+    // Ensure that all of the JS that's expected is included on the page.
+    $this->assertRaw('modules/scale_addressfield/js/addressfield.js', 'Found addressfield.js inclusion on the page.');
+    $this->assertRaw('modules/scale_addressfield/js/addressfield.jquery.js', 'Found the address field jQuery plugin inclusion on the page.');
+
+    // Ensure that the callback is configured properly.
+    $this->assertTrue(strpos($settings['config_json'], '/addressfield/config.json') !== FALSE, 'JSON configuration callback set properly.');
+
+    // Iterate through all expected fields and assert their existence.
+    foreach ($this->fields as $xnal => $input_name) {
+      // Ensure they're in the Drupal.settings configuration.
+      $this->assertTrue(array_search($xnal, $settings['enabled']['addressfield-wrapper']) !== FALSE, format_string('The %field field was properly added to Drupal.settings.', array(
+        '%field' => $xnal,
+      )));
+
+      // Ensure that real fields exist.
+      if (!empty($input_name)) {
+        $this->assertFieldByName($input_name, NULL, format_string('The %field field was properly rendered.', array(
+          '%field' => $input_name,
+        )));
+
+        // Also ensure that the field also uses the appropriate class name.
+        $this->assertHasClassByXpath($this->constructFieldXpath('name', $input_name), $xnal, format_string('The %class class was properly applied to field %field.', array(
+          '%class' => $xnal,
+          '%field' => $input_name,
+        )));
+      }
+    }
+
+    // Ensure that the administrative area field is rendered as a textfield.
+    $this->assertFieldByXpath($this->buildXPathQuery('//input[@name=:name]', array(
+      ':name' => $this->fields['administrativearea'],
+    )), NULL, 'Administrative area field is rendered as a text field.');
+
+    // POST an empty form, ensure that error messages exist for state/postal.
+    $this->drupalPost(NULL, array(), 'Create new account');
+    $this->assertText('State field is required.', 'Administrative area field validation error shown when required.');
+    $this->assertText('ZIP code field is required.', 'Postal code field validation error shown when required.');
+
+    // Swap to defaulting to France.
+    variable_set('site_default_country', 'AF');
+    $this->drupalGet('user/register', array('query' => array('cb' => 1)));
+    $cache = $this->drupalGetHeader('x-drupal-cache');
+    $this->assertTrue($cache == 'MISS', 'Page returned a cache MISS.');
+
+    // Ensure that the default country is now Afghanistan.
+    $this->assertFieldByName('field_address[und][0][country]', 'AF', 'Default country successfully configured as Afghanistan.');
+
+    // Ensure that the administrative area and postal code fields exist (even
+    // though they will be hidden via JS for Afghanistan).
+    $this->assertFieldByXpath($this->buildXPathQuery('//input[@name=:name]', array(
+      ':name' => $this->fields['administrativearea'],
+    )), NULL, 'Administrative area field is rendered as a text field.');
+    $this->assertFieldByXpath($this->buildXPathQuery('//input[@name=:name]', array(
+      ':name' => $this->fields['postalcode'],
+    )), NULL, 'Postal code field is rendered as a text field.');
+
+    // POST an empty form, ensure that error messages do not exist for state
+    // or postal, despite the fact that they were rendered above.
+    $this->assertNoText('State field is required.', 'Administrative area field validation error hidden when irrelevant.');
+    $this->assertNoText('ZIP code field is required.', 'Postal code field validation error hidden when irrelevant.');
+
+  }
+
+  /**
+   * Tests form render overrides (provided by a test module).
+   */
+  public function testFormRenderOverrides() {
+    // Enable the override module.
+    module_enable(array('test_scale_addressfield'));
+
+    // Load the page and check for initial alterations.
+    $this->drupalGet('user/register');
+
+    // Ensure that hook_countries_alter() is respected (no France).
+    $this->assertNoOption('FR', 'The hook_countries_alter() hook was respected');
+
+    // Ensure that hook_addressfield_config_alter() is respected (multiple).
+    $this->assertText('Altered country', 'Country label successfully altered via hook_addressfield_config_alter().');
+    $this->assertText('State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_alter().');
+    $this->assertOption('CA*', 'New country successfully added via hook_addressfield_config_alter().');
+
+    // Ensure the config can be overriden by swapping out the file location.
+    $alt_config = drupal_get_path('module', 'test_scale_addressfield') . '/alternate-config.json';
+    variable_set('scale_addressfield_config_json', $alt_config);
+    cache_clear_all('*', 'cache', TRUE);
+
+    // Ensure our config file was loaded.
+    $this->drupalGet('user/register', array('query' => array('cb' => 1)));
+    $cache = $this->drupalGetHeader('x-drupal-cache');
+    $this->assertTrue($cache == 'MISS', 'Page returned a cache MISS.');
+
+    // Try a smattering of countries (all of which should not be there).
+    $this->assertNoOption('DE', 'Germany successfully removed via alternate default config file.');
+    $this->assertNoOption('BR', 'Brazil successfully removed via alternate default config file.');
+
+    // Ensure that "nega canada" exists.
+    $this->assertRaw('Nega Canada', 'Found country provided via alternate default config file.');
+  }
+
+}
+
+/**
+ * Tests JSON rendering of address field configurations.
+ */
+class ScaleAddressfieldJsonTestCase extends ScaleAddressfieldWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Scale Address Field JSON Render',
+      'description' => 'Tests Scale Address Field JSON render functionality.',
+      'group' => 'Scale Address Field',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('scale_addressfield');
+
+    // Enable the page cache.
+    variable_set('cache', 1);
+    variable_set('cache_lifetime', 3600);
+  }
+
+  function tearDown() {
+    // Disable the page cache.
+    variable_set('cache', 0);
+    variable_set('cache_lifetime', 0);
+    drupal_flush_all_caches();
+
+    parent::tearDown();
+  }
+
+  public function testDefaultJson() {
+    // Return and store the config json.
+    $this->drupalGet('addressfield/config.json');
+    $config = drupal_json_decode($this->drupalGetContent());
+
+    // Assert the right headers.
+    $this->assertEqual($this->drupalGetHeader('content-type'), 'application/json; charset=utf-8', 'Correctly returned application/JSON content-type.');
+    $this->assertTrue($this->drupalGetHeader('content-language'), 'en', 'Correctly returned English content-language.');
+    $this->assertTrue($this->drupalGetHeader('x-drupal-cache') == 'MISS', 'JSON returned a cache MISS.');
+
+    // Assert that the response matches the cached value.
+    $cid = 'scale_addressfield:address_config:en';
+    $cached_config = cache_get($cid);
+    $cached_config = $cached_config->data;
+    $this->assertIdentical($config, $cached_config['php'], 'Returned configuration as PHP matches cached configuration.');
+    $this->assertIdentical($this->drupalGetContent(), $cached_config['json'], 'Returned configuration as JSON matches cached configuration');
+
+    // Assert that the basic structure is as expected.
+    $this->assertTrue(isset($config['options']), 'Returned JSON matches expected output: options key.');
+    $this->assertTrue(isset($config['label']), 'Returned JSON matches expected output: label key.');
+    $this->assertTrue(isset($config['options']['US']['locality']['administrativearea']['options']['OR']), 'Returned JSON matches expected output: Oregon');
+
+    // Retry all tests, but now cached.
+    $this->drupalGet('addressfield/config.json');
+    $this->assertTrue($this->drupalGetHeader('x-drupal-cache') == 'HIT', 'JSON response was cached successfully.');
+    $this->assertEqual($this->drupalGetHeader('content-type'), 'application/json; charset=utf-8', 'Correctly returned application/JSON content-type.');
+    $this->assertTrue($this->drupalGetHeader('content-language'), 'en', 'Correctly returned English content-language.');
+
+    // Assert that the response matches the cached value.
+    $cid = 'scale_addressfield:address_config:en';
+    $cached_config = cache_get($cid);
+    $cached_config = $cached_config->data;
+    $this->assertIdentical($config, $cached_config['php'], 'Returned configuration as PHP matches cached configuration.');
+    $this->assertIdentical($this->drupalGetContent(), $cached_config['json'], 'Returned configuration as JSON matches cached configuration');
+
+    // Assert that the basic structure is as expected.
+    $this->assertTrue(isset($config['options']), 'Returned JSON matches expected output: options key.');
+    $this->assertTrue(isset($config['label']), 'Returned JSON matches expected output: label key.');
+    $this->assertTrue(isset($config['options']['US']['locality']['administrativearea']['options']['OR']), 'Returned JSON matches expected output: Oregon');
+  }
+
+
+  public function testJsonOverrides() {
+    module_enable(array('test_scale_addressfield'));
+
+    // Return and store the config json.
+    $this->drupalGet('addressfield/config.json');
+    $config = drupal_json_decode($this->drupalGetContent());
+    $this->assertTrue($this->drupalGetHeader('x-drupal-cache') == 'MISS', 'JSON returned a cache MISS.');
+
+    // Ensure that hook_countries_alter() is respected (no France).
+    $this->assertFalse(isset($config['options']['FR']), 'The hook_countries_alter() hook was respected.');
+
+    // Ensure that hook_addressfield_config_alter() is respected (multiple).
+    $this->assertEqual($config['label'], 'Altered country', 'Country label successfully altered via hook_addressfield_config_alter().');
+    $this->assertEqual($config['options']['US']['locality']['administrativearea']['label'], 'State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_alter().');
+    $this->assertEqual($config['options']['US']['locality']['administrativearea']['options']['OR'], 'Portland', 'Specific administrative area successfully altered via hook_addressfield_config_alter().');
+    $this->assertTrue(isset($config['options']['CA*']), 'New country successfully added via hook_addressfield_config_alter().');
+
+    // Ensure the config can be overriden by swapping out the file location.
+    $alt_config = drupal_get_path('module', 'test_scale_addressfield') . '/alternate-config.json';
+    variable_set('scale_addressfield_config_json', $alt_config);
+    cache_clear_all('*', 'cache', TRUE);
+
+    // Ensure our config file was loaded.
+    $this->drupalGet('addressfield/config.json', array('query' => array('cb' => 1)));
+    $config = drupal_json_decode($this->drupalGetContent());
+    $this->assertTrue($this->drupalGetHeader('x-drupal-cache') == 'MISS', 'JSON returned a cache MISS.');
+
+    // Try a smattering of countries (all of which should not be there).
+    $this->assertFalse(isset($config['options']['DE']), 'Germany successfully removed via alternate default config file.');
+    $this->assertFalse(isset($config['options']['BR']), 'Brazil successfully removed via alternate default config file.');
+
+    // Ensure that "nega canada" exists.
+    $this->assertEqual($config['options']['CA']['label'], 'Nega Canada', 'Found country provided via alternate default config file.');
+  }
+}

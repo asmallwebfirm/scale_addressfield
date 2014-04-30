@@ -1,0 +1,6 @@
+name = Test Scale Address Field
+description = TEST MODULE! DO NOT ENABLE ON PRODUCTION.
+package = Fields
+core = 7.x
+hidden = TRUE
+dependencies[] = scale_addressfield

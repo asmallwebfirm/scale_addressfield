@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Scale Addressfield module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function scale_addressfield_uninstall() {
+  variable_del('scale_addressfield_config_json');
+}
+
+/**
+ * Removes deprecated Scale Address Field 7.x-1.x data.
+ */
+function scale_addressfield_update_7200() {
+  variable_del('scale_addressfield_ping_interval');
+}
