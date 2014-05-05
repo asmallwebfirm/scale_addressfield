@@ -227,7 +227,7 @@ class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
 
     // Ensure that all of the JS that's expected is included on the page.
     $this->assertRaw('modules/scale_addressfield/js/addressfield.js', 'Found addressfield.js inclusion on the page.');
-    $this->assertRaw('modules/scale_addressfield/js/addressfield.jquery.js', 'Found the address field jQuery plugin inclusion on the page.');
+    $this->assertRaw('modules/scale_addressfield/js/jquery.addressfield/jquery.addressfield.min.js', 'Found the address field jQuery plugin inclusion on the page.');
 
     // Ensure that the callback is configured properly.
     $this->assertTrue(strpos($settings['config_json'], '/addressfield/config.json') !== FALSE, 'JSON configuration callback set properly.');
