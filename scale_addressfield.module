@@ -34,10 +34,10 @@ function scale_addressfield_validate_conditional_element($element, &$form, &$for
   // Check if this field is even a thing for this country.
   if (!scale_addressfield_country_has_field($country, $current_field)) {
     // Determine what the error message likely says.
-    $message = $element['#title'] . ' field is required.';
+    $message = '!name field is required.';
 
     // Get rid of the error message.
-    scale_addressfield_remove_element_form_error($element, $message);
+    scale_addressfield_remove_element_form_error($element, $message, array('!name' => $element['#title']));
   }
 }
 
@@ -378,17 +378,25 @@ function scale_addressfield_get_xnal_field_name($field) {
 /**
  * Helper function to remove errors from the global form state for a given form
  * element.
+ *
+ * @param array $element
+ *   The form element against which the error was originally set.
+ * @param string $message
+ *   The error message (in English) that corresponds to the error.
+ * @param array $args
+ *   (Optional) An array of arguments to be passed to the t() function for the
+ *   given message string.
  */
-function scale_addressfield_remove_element_form_error($element, $message) {
+function scale_addressfield_remove_element_form_error($element, $message, $args = array()) {
   // Check that the error has even been lodged.
-  if ($error = form_get_error($element) AND $error == t($message)) {
+  if ($error = form_get_error($element) AND $error == t($message, $args)) {
     // Remove it from the global error state.
     $key = implode('][', $element['#parents']);
     $errors = &drupal_static('form_set_error');
     unset($errors[$key]);
 
     // There was also likely a message set. Remove it too.
-    scale_addressfield_remove_message('error', $message);
+    scale_addressfield_remove_message('error', $message, $args);
   }
 }
 
