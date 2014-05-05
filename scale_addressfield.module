@@ -63,7 +63,7 @@ function scale_addressfield_library() {
   $path = drupal_get_path('module', 'scale_addressfield');
   $items['jquery.addressfield'] = array(
     'title' => 'jquery.addressfield',
-    'version' => '0.1.0',
+    'version' => '0.1.1',
     'js' => array(
        $path . '/js/jquery.addressfield/jquery.addressfield.min.js' => array(
          'group' => JS_LIBRARY,
