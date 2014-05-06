@@ -99,7 +99,11 @@ translation under the "address field" group in the string translation UI.
 
 ### Contributing
 
-Be mindful that this extension is built on top of other open source software!
+Be mindful that this extension is built on top of other open source software! If
+you find a bug in the integration of one of the following two projects with
+Drupal, you're in the right place. File an issue or pull request to the right.
+If you find an issue that relates specifically with one of the following, please
+open up an issue or pull request against the project itself.
 
 __jquery.addressfield__
 - Used for client-side interaction. Report bugs and open pull requests
@@ -109,10 +113,6 @@ __addressfield.json__
 - Used as the source for default address configuration. If you think a country's
   address format is not represented correctly, open a pull request
   [here](https://github.com/tableau-mkt/addressfield.json).
-
-Find a bug in the integration of the above two projects with Drupal, or want to
-open up a feature request? Do so
-[here](https://github.com/asmallwebfirm/scale_addressfield/issues).
 
 
 [Address Fields]: https://drupal.org/project/addressfield
