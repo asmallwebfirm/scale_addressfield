@@ -11,10 +11,7 @@ own risk (or open a pull request!).
 
 ### Versions
 
-There are two versions of Scale Address Field, each supporting different problem
-sets and solutions. Details below.
-
-Version | Branch | Build Status | Notes
+Version | Branch | Build Status | Focus
 ------- | ------ | ----------- | -----
 2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | This branch focuses on website scalability; it is not guaranteed to work with your theme. Test before deploying!
 1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | _Deprecated_. This branch focuses on UX bugs; updating to Drupal 7.27 resolves most bugs that this version addresses (see [the README]() for details).
