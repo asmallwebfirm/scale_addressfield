@@ -1,5 +1,5 @@
 name = Scale Address Field
-description = A utility Drupal extension that fixes Address Field bugs that crop up at scale.
+description = A utility extension that helps Drupal scale when unauthenticated users are presented with forms containing Address Fields.
 package = Fields
 core = 7.x
 
