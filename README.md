@@ -9,12 +9,13 @@ being rendered the way Drupal core renders it by default. Check to see that your
 theme doesn't alter the markup / element render order, test, or deploy at your
 own risk (or open a pull request!).
 
+
 ### Versions
 
 Version | Branch | Build Status | Focus
 ------- | ------ | ----------- | -----
 2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | This branch focuses on website scalability; it is not guaranteed to work with your theme. Test before deploying!
-1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | _Deprecated_. This branch focuses on UX bugs; updating to Drupal 7.27 resolves most bugs that this version addresses (see [the README]() for details).
+1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | _Deprecated_. This branch focuses on UX bugs; updating to Drupal 7.27 resolves most bugs that this version addresses (see [the 1.x README]() for details).
 
 
 ### Reasons to use this module
@@ -31,6 +32,7 @@ Version | Branch | Build Status | Focus
   - It introduces a sane way to override address field labels, select options,
     etc.
 
+
 ### Installation instructions
 
 The best way to install this module is to use [drush][]! You can do so
@@ -45,6 +47,7 @@ Enable the module like you would any other module, for example:
 ```
 drush en scale_addressfield
 ```
+
 
 ### Configuration and overrides
 
@@ -90,7 +93,26 @@ This module utilizes i18n and i18n_string to localize end-user strings. You will
 need to download and enable [i18n](). All user-facing strings are available for
 translation under the "address field" group in the string translation UI.
 
+
+### Contributing
+
+Be mindful that this extension is built on top of other open source software!
+
+__jquery.addressfield__
+- Used for client-side interaction. Report bugs and open pull requests
+  associated with this behavior [here](https://github.com/tableau-mkt/jquery.addressfield).
+
+__addressfield.json__
+- Used as the source for default address configuration. If you think a country's
+  address format is not represented correctly, open a pull request
+  [here](https://github.com/tableau-mkt/addressfield.json).
+
+Find a bug in the integration of the above two projects with Drupal, or want to
+open up a feature request? Do so
+[here](https://github.com/asmallwebfirm/scale_addressfield/issues).
+
+
 [Address Fields]: https://drupal.org/project/addressfield
-[the README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x/README.md
+[the 1.x README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x/README.md
 [drush]: https://github.com/drush-ops/drush
 [i18n]: https://drupal.org/project/i18n
