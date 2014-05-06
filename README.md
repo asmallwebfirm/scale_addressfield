@@ -87,6 +87,9 @@ as setting a `$conf` setting in your settings.php file. For instance:
 $conf['scale_addressfield_config_json'] = DRUPAL_ROOT . '/sites/all/libraries/my-addressfield-config.json';
 ```
 
+The contents of `my-addressfield-config.json` should match the format of
+[config/address-formats.json](config/address-formats.json).
+
 #### Localization
 
 This module utilizes i18n and i18n_string to localize end-user strings. You will
