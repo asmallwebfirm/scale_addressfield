@@ -2,16 +2,27 @@ Scale Address Field
 ===================
 
 A utility Drupal extension that helps Drupal scale when unauthenticated users
-are presented with forms containing address fields.
+are presented with forms containing [Address Fields]().
 
 This extension requires no configuration, though it relies on the address field
 being rendered the way Drupal core renders it by default. Check to see that your
 theme doesn't alter the markup / element render order, test, or deploy at your
 own risk (or open a pull request!).
 
+### Versions
+
+There are two versions of Scale Address Field, each supporting different problem
+sets and solutions. Details below.
+
+Version | Branch | Build Status | Notes
+------- | ------ | ----------- | -----
+2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | This branch focuses on website scalability; it is not guaranteed to work with your theme. Test before deploying!
+1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | _Deprecated_. This branch focuses on UX bugs; updating to Drupal 7.27 resolves most bugs that this version addresses (see [the README]() for details).
+
+
 ### Reasons to use this module
 
-- If you present forms containing [Address Field]()s to unauthenticated users and
+- If you present forms containing Address Fields to unauthenticated users and
   these forms generate a large amount of traffic, this module resolves the
   following symptoms, with which you may be painfully familiar:
   - An extremely large cache_form table,
@@ -19,7 +30,7 @@ own risk (or open a pull request!).
     cron runs,
   - Unreasonably high disk IOPS on your database container
 - Beyond scalability wins, you might want to use this module because:
-  - UX win: It makes country selection / field swapping instantaneous!
+  - UX: It makes country selection / field swapping instantaneous!
   - It introduces a sane way to override address field labels, select options,
     etc.
 
@@ -82,18 +93,7 @@ This module utilizes i18n and i18n_string to localize end-user strings. You will
 need to download and enable [i18n](). All user-facing strings are available for
 translation under the "address field" group in the string translation UI.
 
-### Scale Address Field versions
-
-There are two versions of Scale Address Field, each supporting different problem
-sets and solutions. Details below.
-
-Version | Branch | Build Status | Notes
-------- | ------ | ----------- | -----
-2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | Focuses on website scalability; not guaranteed to work with your theme, test before deploying.
-1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | Deprecated. Focuses on UX bugs (see [the README]() for details); updating to Drupal 7.27 resolves most bugs this version addresses.
-
-
-[Address Field]: https://drupal.org/project/addressfield
+[Address Fields]: https://drupal.org/project/addressfield
+[the README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x/README.md
 [drush]: https://github.com/drush-ops/drush
 [i18n]: https://drupal.org/project/i18n
-[the README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x/README.md
