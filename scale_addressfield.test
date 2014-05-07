@@ -146,6 +146,8 @@ abstract class ScaleAddressfieldWebTestCase extends DrupalWebTestCase {
 
     if ($elements) {
       foreach ($elements as $element) {
+        // Add extra padding (in case the class comes first or last).
+        $element['class'] = ' ' . $element['class'] . ' ';
         if (isset($element['class']) && strpos($element['class'], $class) !== FALSE) {
           $has_class = TRUE;
         }
@@ -252,6 +254,10 @@ class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
         )));
       }
     }
+
+    // Ensure the localityname field does not have a "locality" class.
+    $field = $this->xpath($this->constructFieldXpath('name', $this->fields['localityname']));
+    $this->assertTrue(strpos('locality ', $field[0]['class']) === FALSE, 'Locality class not found on localityname element.');
 
     // Ensure that the administrative area field is rendered as a textfield.
     $this->assertFieldByXpath($this->buildXPathQuery('//input[@name=:name]', array(
