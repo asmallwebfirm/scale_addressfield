@@ -120,7 +120,15 @@ function scale_addressfield_override_format(&$format, $address, $context = array
               ),
               'type' => 'setting',
             );
-            $format[$container][$name]['#attributes']['class'][] = $xnal_field;
+            // Special case for "localityname" because Address Field provides
+            // "locality" as a class name by default. So, overwrite it entirely.
+            if ($xnal_field == 'localityname') {
+              $format[$container][$name]['#attributes']['class'] = array($xnal_field);
+            }
+            else {
+              // Otherwise, just append our class.
+              $format[$container][$name]['#attributes']['class'][] = $xnal_field;
+            }
           }
         }
       }
