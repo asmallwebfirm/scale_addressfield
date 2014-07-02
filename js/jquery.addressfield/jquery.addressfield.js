@@ -1,4 +1,4 @@
-/*! Address Field - v0.1.2 - 2014-05-12
+/*! Address Field - v0.1.3 - 2014-07-01
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed GPL-2.0 */
 (function ($) {
@@ -195,7 +195,7 @@
         $element = $(this).append(order[i].element);
 
         // The clone process doesn't seem to copy input values; apply that here.
-        $element.find('.' + order[i].class).val(order[i].value).change();
+        $element.find('.' + order[i]['class']).val(order[i].value).change();
       }
     }
   };
