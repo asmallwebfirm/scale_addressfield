@@ -1,4 +1,4 @@
-/*! Address Field - v0.1.3 - 2014-07-01
+/*! Address Field - v0.2.0 - 2014-08-26
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed GPL-2.0 */
 (function ($) {
@@ -56,7 +56,7 @@
           }
 
           // When adding fields that didn't previously exist.
-          if ($element.not(':visible') && $.inArray(field, enabled_fields) !== -1) {
+          if (!$.fn.addressfield.isVisible.call($element) && $.inArray(field, enabled_fields) !== -1) {
             $.fn.addressfield.showField.call($element);
           }
         }
@@ -81,9 +81,11 @@
    * Updates a given field's label with a given label.
    */
   $.fn.addressfield.updateLabel = function (label) {
-    if ($(this).prev('label').length) {
-      $(this).prev('label').text(label);
-    }
+    var $this = $(this),
+        elementName = $this.attr('id'),
+        $label = $('label[for="' + elementName + '"]') || $this.prev('label');
+
+    $label.text(label);
   };
 
   /**
@@ -112,11 +114,8 @@
     var $self = $(this),
         $input = $('<input />').attr('type', 'text');
 
-    $.each($self[0].attributes, function () {
-      if ($.inArray(this.name, ['class', 'id', 'name']) !== -1) {
-        $input.attr(this.name, this.value);
-      }
-    });
+    // Copy attributes from $self to $input.
+    $.fn.addressfield.copyAttrsTo.call($self, $input);
 
     // Ensure the old value is still reflected after conversion.
     $input.val($self.val());
@@ -133,11 +132,8 @@
     var $self = $(this),
         $select = $('<select></select>');
 
-    $.each($self[0].attributes, function () {
-      if ($.inArray(this.name, ['class', 'id', 'name']) !== -1) {
-        $select.attr(this.name, this.value);
-      }
-    });
+    // Copy attributes from $self to $select.
+    $.fn.addressfield.copyAttrsTo.call($self, $select);
 
     // Save the old input value to a data attribute, for use in updateOptions.
     $select.data('_saved', $self.val());
@@ -151,15 +147,54 @@
    * Hides the field, but stores it for restoration later, if necessary.
    */
   $.fn.addressfield.hideField = function() {
-    $(this).val('');
-    $(this).parent().hide();
+    $(this).val('').hide();
+    $.fn.addressfield.container.call(this).hide();
   };
 
   /**
    * Shows / restores the field that had been previously hidden.
    */
   $.fn.addressfield.showField = function() {
-    $(this).parent().show();
+    this.show();
+    $.fn.addressfield.container.call(this).show();
+  };
+
+  /**
+   * Returns whether or not the field is visible.
+   */
+  $.fn.addressfield.isVisible = function() {
+    return $(this).is(':visible');
+  };
+
+  /**
+   * Returns the container element for a given field.
+   */
+  $.fn.addressfield.container = function() {
+    var $this = $(this),
+        elementName = $this.attr('id'),
+        $label = $('label[for="' + elementName + '"]') || $this.prev('label');
+
+    // @todo drop support for jQuery 1.3, just use .has()
+    if (typeof $.fn.has === 'function') {
+      return $this.parents().has($label).first();
+    }
+    else {
+      return $this.parents().find(':has(label):has(#' + elementName + '):last');
+    }
+  };
+
+  /**
+   * Copies select HTML attributes from a given element to the supplied element.
+   */
+  $.fn.addressfield.copyAttrsTo = function($to) {
+    var attributes = ['class', 'id', 'name'],
+        $this = $(this);
+
+    $.each($this[0].attributes, function () {
+      if ($.inArray(this.name, attributes) !== -1) {
+        $to.attr(this.name, this.value);
+      }
+    });
   };
 
   /**
@@ -176,7 +211,7 @@
     for (i; i < length; ++i) {
       if (i in order) {
         // Save off the element container over its class selector in order.
-        $element = $(this).find('.' + order[i]).parent('div, section');
+        $element = $.fn.addressfield.container.call(this.find('.' + order[i]));
         order[i] = {
           'element': $element.clone(),
           'class': order[i],

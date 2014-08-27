@@ -25,13 +25,15 @@
    * asterisks into account.
    */
   $.fn.addressfield.updateLabel = function (label) {
-    var old_label = $(this).prev('label').contents().filter(function() {
+    var fieldId = $(this).attr('id'),
+        $label = $('label[for="' + fieldId + '"]'),
+        old_label = $label.contents().filter(function() {
         return this.nodeType == 3;
       }).text(),
-      old_markup = $(this).prev('label').html();
+      old_markup = $label.html();
 
-    if ($(this).prev('label').length) {
-      $(this).prev('label').html(old_markup.replace(old_label, label + ' '));
+    if ($label.length) {
+      $label.html(old_markup.replace(old_label, label + ' '));
     }
   }
 
