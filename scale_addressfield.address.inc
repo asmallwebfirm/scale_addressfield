@@ -44,6 +44,9 @@ function scale_addressfield_override_format(&$format, $address, $context = array
 
     // Update the list of countries based on our configuration.
     $format['country']['#options'] = array_intersect_key($format['country']['#options'], $config['options']);
+    foreach ($format['country']['#options'] as $code => $label) {
+      $format['country']['#options'][$code] = $config['options'][$code]['label'];
+    }
     $missing_countries = array_diff_key($config['options'], $format['country']['#options']);
     foreach ($missing_countries as $code => $definition) {
       $format['country']['#options'][$code] = $definition['label'];
