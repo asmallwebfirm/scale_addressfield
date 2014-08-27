@@ -2,19 +2,15 @@ Scale Address Field
 ===================
 
 A utility Drupal extension that helps Drupal scale when unauthenticated users
-are presented with forms containing [Address Fields]().
-
-This extension requires no configuration, though it relies on the address field
-being rendered the way Drupal core renders it by default. Check to see that your
-theme doesn't alter the markup / element render order, test, or deploy at your
-own risk (or open a pull request!).
+are presented with forms containing [Address Fields](). This extension requires
+no configuration.
 
 
 ### Versions
 
 Version | Branch | Build Status | Focus
 ------- | ------ | ----------- | -----
-2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | This branch focuses on website scalability; it is not guaranteed to work with your theme. Test before deploying!
+2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | This branch focuses on website scalability; it's recommended that you test with your theme before deploying.
 1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | _Deprecated_. This branch focuses on UX bugs; updating to Drupal 7.27 resolves most bugs that this version addresses (see [the 1.x README]() for details).
 
 
