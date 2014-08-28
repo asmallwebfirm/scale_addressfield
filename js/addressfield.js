@@ -68,6 +68,9 @@
         country = $('#' + wrapper + ' .country').val();
         $('#' + wrapper).addressfield(Drupal.settings.scale_addressfield.config.options[country], Drupal.settings.scale_addressfield.enabled[wrapper]);
       }
+
+      // Trigger an event, signaling addressfield functionality initialization.
+      $(document).trigger('scale_addressfield:initialized');
     });
   });
 })(jQuery, Drupal);
