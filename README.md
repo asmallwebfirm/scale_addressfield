@@ -86,6 +86,23 @@ $conf['scale_addressfield_config_json'] = DRUPAL_ROOT . '/sites/all/libraries/my
 The contents of `my-addressfield-config.json` should match the format of
 [config/address-formats.json](config/address-formats.json).
 
+#### Client-side reactions
+
+There may be cases in which you wish to further customize the address field UX
+on the client-side, but wish to do so after jquery.addressfield and the configs
+associated with Scale Address Field have been initialized.
+
+To do so, you can hang your customizations off of a custom event, triggered
+after all configurations have been loaded and applied:
+
+```javascript
+(function($) {
+  $(document).bind('scale_addressfield:initialized', function() {
+    // Perform dependent customizations here.
+  });
+})(jQuery);
+```
+
 #### Localization
 
 This module utilizes i18n and i18n_string to localize end-user strings. You will
