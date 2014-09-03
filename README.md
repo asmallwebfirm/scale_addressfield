@@ -58,20 +58,20 @@ details.
 
 ```php
 /**
- * Implements hook_addressfield_config_alter().
+ * Implements hook_addressfield_config_pre_alter().
  */
-function MY_MODULE_addressfield_config_alter(&$config) {
+function MY_MODULE_addressfield_config_pre_alter(&$config) {
   // You might want to update the label for the country field itself.
   // Note: Do not run these through t(), they are translated via i18n
   $config['label'] = 'Country/Region';
 
-  // Perhaps you don't want to display a certain field for a certain country.
-  unset($config['options']['CA']['locality']['postalcode']);
-
   // For full details on structure, see the default address configuration file,
-  // located at config/address-formats.json.
+  // located at json/addressfield.json.
 }
 ```
+
+See also hook_addressfield_config_post_alter() for altering configuration
+details after configuration localization and processing has occurred.
 
 #### The `scale_addressfield_config_json` configuration
 
@@ -84,7 +84,9 @@ $conf['scale_addressfield_config_json'] = DRUPAL_ROOT . '/sites/all/libraries/my
 ```
 
 The contents of `my-addressfield-config.json` should match the format of
-[config/address-formats.json](config/address-formats.json).
+[config/address-formats.json](json/addressfield.json). For more details, see the
+[addressfield.json](https://github.com/tableau-mkt/addressfield.json) project on
+GitHub.
 
 #### Client-side reactions
 

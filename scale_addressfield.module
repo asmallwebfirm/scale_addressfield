@@ -115,21 +115,15 @@ function scale_addressfield_get_address_configuration($format, $language = NULL,
       $json = scale_addressfield_get_default_address_configuration();
       $return[$lang]['php'] = drupal_json_decode($json);
 
-      // Respect hook_countries_alter() / configured countries in Drupal.
-      include_once DRUPAL_ROOT . '/includes/locale.inc';
-      $return[$lang]['php']['options'] = array_intersect_key($return[$lang]['php']['options'], country_get_list());
+      // Run the configuration through a Drupal alter prior to processing.
+      drupal_alter('addressfield_config_pre', $return[$lang]['php']);
 
-      // Run the decoded configuration through a Drupal alter.
-      drupal_alter('addressfield_config', $return[$lang]['php']);
+      // To reduce iterations over the whole config array, perform all process
+      // steps in a single loop in a single callback.
+      scale_addressfield_process_country_configuration($return[$lang]['php'], $lang);
 
-      // Do not run through localization for the site default language.
-      if ($lang !== language_default('language')) {
-        // We're dealing with end-user strings that we need to localize.
-        scale_addressfield_localize_configuration($return[$lang]['php'], $lang);
-      }
-
-      // Add in "-- None --" style default options to all admin region selects.
-      scale_addressfield_add_default_option_none($return[$lang]['php']);
+      // Run the configuration through a Drupal alter after processing.
+      drupal_alter('addressfield_config_post', $return[$lang]['php']);
 
       // Copy all changes back over to the JSON side.
       $return[$lang]['json'] = drupal_json_encode($return[$lang]['php']);
@@ -146,53 +140,48 @@ function scale_addressfield_get_address_configuration($format, $language = NULL,
 }
 
 /**
- * Localizes a given configuration into the specified language.
+ * Applies processing steps against an address configuration, including any
+ * required localization.
  *
  * @param array $configs
- *   The PHP representation (an array) of address configurations.
+ *   The full address configuration, represented as a PHP array. The "label" and
+ *   "options" properties should be at the root of the array.
  *
- * @param string $language
- *   The language code representing the target language for localization.
+ * @param string $lang
+ *   The language with which processing should be performed.
  */
-function scale_addressfield_localize_configuration(&$configs, $language) {
-  // No need to waste cycles localizing if i18n string isn't even available.
-  if (function_exists('i18n_string')) {
-    // Global, top-level configuration.
+function scale_addressfield_process_country_configuration(&$configs, $lang) {
+  include_once DRUPAL_ROOT . '/includes/locale.inc';
+  $countries = country_get_list();
+  $lang_default = language_default('language');
+
+  // Localize the country label itself.
+  if ($lang !== $lang_default) {
     $context = scale_addressfield_i18n_context(array('country', 'label'));
-    $configs['label'] = scale_addressfield_translate($context, $configs['label'], $language);
+    $configs['label'] = scale_addressfield_translate($context, $configs['label'], $lang);
+  }
 
-    // Iterate through all countries and their configurations.
-    foreach ($configs['options'] as $country => $config) {
-      // Country label.
-      if (isset($config['label'])) {
-        $context = scale_addressfield_i18n_context(array('country', 'options', $country, 'label'));
-        $configs['options'][$country]['label'] = scale_addressfield_translate($context, $config['label'], $language);
-      }
+  // Process each country's configuration individually.
+  foreach ($configs['options'] as $key => &$config) {
+    // Respect hook_countries_alter() / configured countries in Drupal.
+    if (!isset($countries[$config['iso']])) {
+      unset ($configs['options'][$key]);
+      continue;
+    }
 
-      // Iterate through all fields, check for labels.
-      foreach ($config as $field_name => $definition) {
-        // Translate field name labels.
-        if (is_array($definition)) {
-          if (isset($definition['label'])) {
-            $context = scale_addressfield_i18n_context(array('country', 'options', $country, $field_name, 'label'));
-            $configs['options'][$country][$field_name]['label'] = scale_addressfield_translate($context, $definition['label'], $language);
-          }
-          // Special case for locality; go down another layer.
-          elseif ($field_name == 'locality') {
-            foreach ($definition as $sub_field_name => $sub_definition) {
-              if (isset($sub_definition['label'])) {
-                $context = scale_addressfield_i18n_context(array('country', 'options', $country, $field_name, $sub_field_name, 'label'));
-                $configs['options'][$country][$field_name][$sub_field_name]['label'] = scale_addressfield_translate($context, $sub_definition['label'], $language);
-              }
+    // Do not run through localization for the site default language.
+    if ($lang !== $lang_default) {
+      // We're dealing with end-user strings that we need to localize.
+      scale_addressfield_localize_country_config($config, $lang);
+    }
 
-              // If the field has options, translate their user-facing strings.
-              if (isset($sub_definition['options']) && is_array($sub_definition['options'])) {
-                foreach ($sub_definition['options'] as $code => $value) {
-                  $context = scale_addressfield_i18n_context(array('country', 'options', $country, $field_name, $sub_field_name, 'options', $code));
-                  $configs['options'][$country][$field_name][$sub_field_name]['options'][$code] = scale_addressfield_translate($context, $value, $language);
-                }
-              }
-            }
+    // Provide a global translation via t() for the none selected label.
+    foreach ($config['fields'] as &$field) {
+      if (isset($field['locality'])) {
+        foreach ($field['locality'] as &$loc_field) {
+          if (isset($loc_field['administrativearea']['options'])) {
+            $loc_field['administrativearea']['options'][0][''] = t('--');
+            break 2;
           }
         }
       }
@@ -201,18 +190,103 @@ function scale_addressfield_localize_configuration(&$configs, $language) {
 }
 
 /**
- * Adds a "-- none --" style option to all administrative area selects, as the
- * Address field module did.
+ * Localizes a given, individual country config into the specified language.
  *
  * @param array $config
- *   The PHP representation (an array) of address configurations.
+ *   The PHP representation (an array) of a country configuration.
+ *
+ * @param string $language
+ *   The language code representing the target language for localization.
  */
-function scale_addressfield_add_default_option_none(&$configs) {
-  foreach ($configs['options'] as $country => $config) {
-    if (isset($config['locality']['administrativearea']['options'])) {
-      $configs['options'][$country]['locality']['administrativearea']['options'] = array_merge(array(
-          '' => t('--')
-        ), $configs['options'][$country]['locality']['administrativearea']['options']);
+function scale_addressfield_localize_country_config(&$config, $language) {
+  // No need to waste cycles localizing if i18n string isn't even available.
+  if (function_exists('i18n_string')) {
+    // Country label.
+    $context = scale_addressfield_i18n_context(array('country', 'options', $config['iso'], 'label'));
+    $config['label'] = scale_addressfield_translate($context, $config['label'], $language);
+
+    // Iterate through all fields, check for labels.
+    foreach ($config['fields'] as $key => &$field) {
+      $context = array('country', 'options', $config['iso']);
+      scale_addressfield_localize_field_config($field, $context, $language);
+    }
+  }
+}
+
+/**
+ * Localizes a given, individual field config into the specified language, given
+ * a specified i18n string context array.
+ *
+ * @param array $config
+ *   The PHP representation (an array) of a field configuration.
+ *
+ * @param array $context
+ *   An array representing the i18n string context for this field.
+ *
+ * @param string $language
+ *   The language code representing the target language for localization.
+ */
+function scale_addressfield_localize_field_config(&$config, $context, $language) {
+  $xnal = key($config);
+
+  // Translate field name labels.
+  if (isset($config[$xnal]['label'])) {
+    // Prepare the i18n string context.
+    $this_context = $context;
+    array_push($this_context, $xnal, 'label');
+    $this_context = scale_addressfield_i18n_context($this_context);
+
+    // Localize the label with the given context.
+    $config[$xnal]['label'] = scale_addressfield_translate($this_context, $config[$xnal]['label'], $language);
+  }
+
+  // Translate field option sets.
+  if (isset($config[$xnal]['options'])) {
+    // Prepare the i18n string context.
+    $this_context = $context;
+    array_push($this_context, $xnal, 'options');
+
+    // Localize the options with the given context.
+    scale_addressfield_localize_options_config($config[$xnal]['options'], $this_context, $language);
+  }
+
+  // Special case for the "locality" fieldset... Go one deeper.
+  if ($xnal === 'locality') {
+    // Prepare the i18n string context.
+    $this_context = $context;
+    array_push($this_context, $xnal);
+
+    // Iterate through each locality subfield and localize its configuration.
+    foreach ($config[$xnal] as &$field) {
+      scale_addressfield_localize_field_config($field, $this_context, $language);
+    }
+  }
+}
+
+/**
+ * Localizes a given, individual option config into the specified language,
+ * given a specified i18n string context array.
+ *
+ * @param array $config
+ *   The PHP representation (an array) of an option list.
+ *
+ * @param array $context
+ *   An array representing the i18n string context for this option list.
+ *
+ * @param string $language
+ *   The language code representing the target language for localization.
+ */
+function scale_addressfield_localize_options_config(&$config, $context, $language) {
+  foreach ($config as &$option) {
+    // Do not "translate" the empty select value. This is handled elsewhere.
+    if ($code = key($option)) {
+      // Prepare the i18n string context.
+      $this_context = $context;
+      array_push($this_context, $code);
+      $this_context = scale_addressfield_i18n_context($this_context);
+
+      // Translate the option configuration.
+      $option[$code] = scale_addressfield_translate($this_context, $option[$code], $language);
     }
   }
 }
@@ -302,8 +376,8 @@ function scale_addressfield_i18n_context($append) {
  */
 function scale_addressfield_get_default_address_configuration() {
   $default = drupal_get_path('module', 'scale_addressfield');
-  $default .= DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR;
-  $default .= 'address-formats.json';
+  $default .= DIRECTORY_SEPARATOR . 'json' . DIRECTORY_SEPARATOR;
+  $default .= 'addressfield.min.json';
   $json_file = variable_get('scale_addressfield_config_json', $default);
   return file_get_contents($json_file);
 }
