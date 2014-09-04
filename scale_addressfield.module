@@ -341,17 +341,6 @@ function scale_addressfield_get_default_address_configuration() {
 }
 
 /**
- * Returns a global "default" configuration for country display.
- */
-function scale_addressfield_get_address_configuration_default() {
-  return array(
-    'thoroughfare' => array('label' => 'Address 1'),
-    'premise' => array('label' => 'Address 2'),
-    'locality' => array('label' => 'City'),
-  );
-}
-
-/**
  * Helper function that checks if a given country uses the given field in their
  * addresses.
  *
