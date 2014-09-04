@@ -360,14 +360,27 @@ function scale_addressfield_country_has_field($country, $field) {
   // Run the field through our map.
   $field = scale_addressfield_get_xnal_field_name($field);
 
-  if (isset($configs['options'][$country][$field])) {
-    return TRUE;
+  // Storage spot for the country configuration object.
+  $config = array();
+
+  foreach ($configs['options'] as $country_obj) {
+    if ($country_obj['iso'] === $country) {
+      $config = $country_obj;
+      break;
+    }
   }
-  // Also take into account nested fields (e.g. under locality).
-  elseif (isset($configs['options'][$country])) {
-    foreach ($configs['options'][$country] as $name => $value) {
-      if (is_array($value) && isset($value[$field])) {
-        return TRUE;
+
+  foreach ($config['fields'] as $field_obj) {
+    $xnal = key($field_obj);
+    if ($xnal === $field) {
+      return TRUE;
+    }
+    elseif ($xnal === 'locality') {
+      foreach ($field_obj[$xnal] as $sub_field) {
+        $xnal = key($sub_field);
+        if ($xnal === $field) {
+          return TRUE;
+        }
       }
     }
   }
