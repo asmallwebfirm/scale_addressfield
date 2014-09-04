@@ -312,48 +312,6 @@ function scale_addressfield_translate($context, $string, $langcode = NULL) {
 }
 
 /**
- * Refreshes strings from JSON config when a refresh is triggered through
- * admin/config/regional/translate/i18n_string.
- *
- * @param array $configs
- *   An array of address field configurations to be translated. You probably
- *   shouldn't use this; just used for recursion.
- *
- * @param array $parents
- *   An array of parent array keys, used to generate i18n string context.
- *
- * @see scale_addressfield_i18n_string_refresh()
- */
-function scale_addressfield_i18n_update_strings(array $configs = array(), array $parents = array()) {
-  if (!function_exists('i18n_string_update')) {
-    return;
-  }
-
-  // Empty $configs array means we're refreshing all. Get global configs.
-  if ($configs === array()) {
-    $configs = scale_addressfield_get_address_configuration('php', language_default('language'), TRUE);
-    $parents = array('country');
-  }
-
-  // Iterate through all elements in the array.
-  foreach ($configs as $key => $value) {
-    // If we still have a ways to go, continue recursing.
-    if ((array) $value === $value) {
-      $new_parents = $parents;
-      $new_parents[] = $key;
-      scale_addressfield_i18n_update_strings($value, $new_parents);
-    }
-    // In the base case, update the string.
-    else {
-      $new_parents = $parents;
-      $new_parents[] = $key;
-      $i18n_context = scale_addressfield_i18n_context($new_parents);
-      i18n_string_update($i18n_context, $value);
-    }
-  }
-}
-
-/**
  * Helper function to get an i18n string context, given an array of strings to
  * append to the base context.
  *
