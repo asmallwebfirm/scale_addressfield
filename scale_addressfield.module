@@ -154,9 +154,10 @@ function scale_addressfield_process_country_configuration(&$configs, $lang) {
   include_once DRUPAL_ROOT . '/includes/locale.inc';
   $countries = country_get_list();
   $lang_default = language_default('language');
+  $should_localize = $lang !== $lang_default;
 
   // Localize the country label itself.
-  if ($lang !== $lang_default) {
+  if ($should_localize) {
     $context = scale_addressfield_i18n_context(array('country', 'label'));
     $configs['label'] = scale_addressfield_translate($context, $configs['label'], $lang);
   }
@@ -170,7 +171,7 @@ function scale_addressfield_process_country_configuration(&$configs, $lang) {
     }
 
     // Do not run through localization for the site default language.
-    if ($lang !== $lang_default) {
+    if ($should_localize) {
       // We're dealing with end-user strings that we need to localize.
       scale_addressfield_localize_country_config($config, $lang);
     }
@@ -186,6 +187,12 @@ function scale_addressfield_process_country_configuration(&$configs, $lang) {
         }
       }
     }
+  }
+
+  // Assume the default language version is in the correct sort order.
+  if ($should_localize && extension_loaded('intl')) {
+    scale_addressfield_current_locale($lang);
+    usort($configs['options'], 'scale_addressfield_localize_country_sort');
   }
 }
 
@@ -289,6 +296,54 @@ function scale_addressfield_localize_options_config(&$config, $context, $languag
       $option[$code] = scale_addressfield_translate($this_context, $option[$code], $language);
     }
   }
+}
+
+/**
+ * Sort comparison function used to sort countries in natural sort order for the
+ * current language.
+ *
+ * @param array $a
+ *   The first country configuration array for the comparator. Should contain a
+ *   "label" key.
+ *
+ * @param array $b
+ *   The second country configuration array for the comparator. Should contain a
+ *   "label" key.
+ *
+ * @return int
+ * @see scale_addressfield_process_country_configuration().
+ */
+function scale_addressfield_localize_country_sort($a, $b) {
+  static $collator = NULL;
+
+  if ($collator === NULL) {
+    $collator = collator_create(scale_addressfield_current_locale());
+  }
+
+  return $collator->compare($a['label'], $b['label']);
+}
+
+/**
+ * Gets/sets the current global locale state...  Just a static function that's
+ * used to hold onto global scope locale...
+ *
+ * @param string $locale
+ *   (Optional) A string representing the current locale to be set.
+ *
+ * @return string
+ *   Returns a string representing the current configured locale.
+ *
+ * @see scale_addressfield_localize_country_sort()
+ * @see scale_addressfield_process_country_configuration()
+ */
+function scale_addressfield_current_locale($locale = NULL) {
+  $static_locale = &drupal_static(__FUNCTION__, $GLOBALS['language']->language);
+
+  if ($locale !== NULL) {
+    $static_locale = $locale;
+  }
+
+  return $static_locale;
 }
 
 /**
