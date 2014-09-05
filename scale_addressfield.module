@@ -212,6 +212,91 @@ function scale_addressfield_get_default_address_configuration() {
 }
 
 /**
+ * Returns country configurations as an array, keyed by country ISO code.
+ *
+ * @param string $country
+ *   (Optional) The country code for a specific configuration to return.
+ *
+ * @param string $language
+ *   (Optional) The language code for the configuration. If empty, the global
+ *   language will be assumed.
+ *
+ * @return array
+ *   If a country is provided, a country configuration array will be returned.
+ *   If none is provided, all country configurations will be returned, keyed by
+ *   ISO code.
+ */
+function scale_addressfield_get_address_configuration_by_country($country = NULL, $language = NULL) {
+  $countries = &drupal_static(__FUNCTION__, array());
+  $lang = isset($language) ? $language : $GLOBALS['language']->language;
+
+  if (!isset($countries[$lang])) {
+    $configs = scale_addressfield_get_address_configuration('php', $lang);
+    foreach ($configs['options'] as $config) {
+      $countries[$lang][$config['iso']] = $config;
+    }
+  }
+
+  return $country ? $countries[$lang][$country] : $countries[$lang];
+}
+
+/**
+ * Helper function to return an associative array of localized country names,
+ * keyed by ISO code.
+ */
+function scale_addressfield_get_country_options_list() {
+  $countries = scale_addressfield_get_address_configuration_by_country();
+  $return = array();
+
+  foreach ($countries as $iso => $config) {
+    $return[$iso] = $config['label'];
+  }
+
+  return $return;
+}
+
+/**
+ * Helper function to return a field label for a given country in a given
+ * language. If no field or label exists, FALSE will be returned.
+ *
+ * @param string $country
+ *   The country code of the given country.
+ *
+ * @param string $field
+ *   The xNAL name of the given field.
+ *
+ * @param string $language
+ *   (Optional) The language code for the desired field label.
+ *
+ * @return string|bool
+ *   Returns the localized label for the given field and country. FALSE if no
+ *   field or field label is found.
+ */
+function scale_addressfield_get_field_label($country, $field, $language = NULL) {
+  $lang = isset($language) ? $language : $GLOBALS['language']->language;
+  $field = scale_addressfield_get_xnal_field_name($field);
+
+  // Load the desired country configuration object and iterate through fields.
+  $config = scale_addressfield_get_address_configuration_by_country($country, $lang);
+  foreach ($config['fields'] as $field_obj) {
+    $xnal = key($field_obj);
+    if ($xnal === $field && isset($field_obj[$xnal]['label'])) {
+      return $field_obj[$xnal]['label'];
+    }
+    elseif ($xnal === 'locality') {
+      foreach ($field_obj[$xnal] as $sub_field) {
+        $xnal = key($sub_field);
+        if ($xnal === $field && isset($sub_field[$xnal]['label'])) {
+          return $sub_field[$xnal]['label'];
+        }
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
  * Helper function that checks if a given country uses the given field in their
  * addresses.
  *
@@ -226,20 +311,10 @@ function scale_addressfield_get_default_address_configuration() {
  */
 function scale_addressfield_country_has_field($country, $field) {
   // Get the configs for this country.
-  $configs = scale_addressfield_get_address_configuration('php');
+  $config = scale_addressfield_get_address_configuration_by_country($country);
 
   // Run the field through our map.
   $field = scale_addressfield_get_xnal_field_name($field);
-
-  // Storage spot for the country configuration object.
-  $config = array();
-
-  foreach ($configs['options'] as $country_obj) {
-    if ($country_obj['iso'] === $country) {
-      $config = $country_obj;
-      break;
-    }
-  }
 
   foreach ($config['fields'] as $field_obj) {
     $xnal = key($field_obj);
