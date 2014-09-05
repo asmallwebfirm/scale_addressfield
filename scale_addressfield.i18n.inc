@@ -38,6 +38,7 @@ function scale_addressfield_i18n_string_refresh($group) {
  * @see scale_addressfield_i18n_string_refresh()
  */
 function scale_addressfield_update_i18n_strings() {
+  module_load_include('inc', 'scale_addressfield', 'scale_addressfield.loc');
   $configs = scale_addressfield_get_address_configuration('php', language_default('language'), TRUE);
 
   // Global, top-level configuration.
