@@ -7,23 +7,25 @@
 
 
 /**
- * Implements hook_addressfield_config_alter().
+ * Implements hook_addressfield_config_pre_alter().
  *
  * Ensures that elements in the given configuration can be altered and added.
  */
-function test_scale_addressfield_addressfield_config_alter(&$config) {
+function test_scale_addressfield_addressfield_config_pre_alter(&$config) {
   // Override country label.
   $config['label'] = 'Altered country';
 
-  if (isset($config['options']['US']['locality']['administrativearea'])) {
-    // Put a bird on it.
-    $us_states = &$config['options']['US']['locality']['administrativearea'];
-    $us_states['options']['OR'] = 'Portland';
-    $us_states['label'] = 'State, Yo';
-  }
+  if (!variable_get('scale_addressfield_config_json', FALSE)) {
+    if ($config['options'][234]['iso'] === 'US') {
+      // Put a bird on it.
+      $us_states = &$config['options'][234]['fields'][2]['locality'][1]['administrativearea'];
+      $us_states['options'][38]['OR'] = 'Portland';
+      $us_states['label'] = 'State, Yo';
+    }
 
-  // A whole new world.
-  $config['options']['CA*'] = $config['options']['CA'];
+    // A whole new world.
+    $config['options'][] = $config['options'][39];
+  }
 }
 
 /**

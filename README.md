@@ -50,7 +50,7 @@ drush en scale_addressfield
 Scale Address Field offers two ways in which you can alter or override the way
 in which the address field dynamic country form widget is rendered.
 
-#### Implementing hook_addressfield_config_alter()
+#### Implementing hook_addressfield_config_pre_alter()
 
 You can implement a simple alter to slightly modify the way in which fields are
 rendered. See [scale_addressfield.api.php](scale_addressfield.api.php) for full

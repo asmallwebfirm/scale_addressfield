@@ -307,10 +307,10 @@ class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
     // Ensure that hook_countries_alter() is respected (no France).
     $this->assertNoOption('FR', 'The hook_countries_alter() hook was respected');
 
-    // Ensure that hook_addressfield_config_alter() is respected (multiple).
-    $this->assertText('Altered country', 'Country label successfully altered via hook_addressfield_config_alter().');
-    $this->assertText('State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_alter().');
-    $this->assertOption('CA*', 'New country successfully added via hook_addressfield_config_alter().');
+    // Ensure that hook_addressfield_config_pre_alter() is respected (multiple).
+    $this->assertText('Altered country', 'Country label successfully altered via hook_addressfield_config_pre_alter().');
+    $this->assertText('State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_pre_alter().');
+    $this->assertOption('CA*', 'New country successfully added via hook_addressfield_config_pre_alter().');
 
     // Ensure the config can be overriden by swapping out the file location.
     $alt_config = drupal_get_path('module', 'test_scale_addressfield') . '/alternate-config.json';
@@ -382,7 +382,7 @@ class ScaleAddressfieldJsonTestCase extends ScaleAddressfieldWebTestCase {
     // Assert that the basic structure is as expected.
     $this->assertTrue(isset($config['options']), 'Returned JSON matches expected output: options key.');
     $this->assertTrue(isset($config['label']), 'Returned JSON matches expected output: label key.');
-    $this->assertTrue(isset($config['options']['US']['locality']['administrativearea']['options']['OR']), 'Returned JSON matches expected output: Oregon');
+    $this->assertTrue(isset($config['options'][0]['fields']), 'Returned JSON matches expected format.');
 
     // Retry all tests, but now cached.
     $this->drupalGet('addressfield/config.json');
@@ -400,7 +400,7 @@ class ScaleAddressfieldJsonTestCase extends ScaleAddressfieldWebTestCase {
     // Assert that the basic structure is as expected.
     $this->assertTrue(isset($config['options']), 'Returned JSON matches expected output: options key.');
     $this->assertTrue(isset($config['label']), 'Returned JSON matches expected output: label key.');
-    $this->assertTrue(isset($config['options']['US']['locality']['administrativearea']['options']['OR']), 'Returned JSON matches expected output: Oregon');
+    $this->assertTrue(isset($config['options'][0]['fields']), 'Returned JSON matches expected format.');
   }
 
 
@@ -413,13 +413,13 @@ class ScaleAddressfieldJsonTestCase extends ScaleAddressfieldWebTestCase {
     $this->assertTrue($this->drupalGetHeader('x-drupal-cache') == 'MISS', 'JSON returned a cache MISS.');
 
     // Ensure that hook_countries_alter() is respected (no France).
-    $this->assertFalse(isset($config['options']['FR']), 'The hook_countries_alter() hook was respected.');
+    $this->assertFalse(array_key_exists(74, $config['options']), 'The hook_countries_alter() hook was respected.');
 
-    // Ensure that hook_addressfield_config_alter() is respected (multiple).
-    $this->assertEqual($config['label'], 'Altered country', 'Country label successfully altered via hook_addressfield_config_alter().');
-    $this->assertEqual($config['options']['US']['locality']['administrativearea']['label'], 'State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_alter().');
-    $this->assertEqual($config['options']['US']['locality']['administrativearea']['options']['OR'], 'Portland', 'Specific administrative area successfully altered via hook_addressfield_config_alter().');
-    $this->assertTrue(isset($config['options']['CA*']), 'New country successfully added via hook_addressfield_config_alter().');
+    // Ensure that hook_addressfield_config_pre_alter() is respected (multiple).
+    $this->assertEqual($config['label'], 'Altered country', 'Country label successfully altered via hook_addressfield_config_pre_alter().');
+    $this->assertEqual($config['options'][234]['fields'][2]['locality'][1]['administrativearea']['label'], 'State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_pre_alter().');
+    $this->assertEqual($config['options'][234]['fields'][2]['locality'][1]['administrativearea']['options'][38]['OR'], 'Portland', 'Specific administrative area successfully altered via hook_addressfield_config_pre_alter().');
+    $this->assertIdentical($config['options'][247], $config['options'][39], 'New country successfully added via hook_addressfield_config_pre_alter().');
 
     // Ensure the config can be overriden by swapping out the file location.
     $alt_config = drupal_get_path('module', 'test_scale_addressfield') . '/alternate-config.json';
@@ -432,10 +432,10 @@ class ScaleAddressfieldJsonTestCase extends ScaleAddressfieldWebTestCase {
     $this->assertTrue($this->drupalGetHeader('x-drupal-cache') == 'MISS', 'JSON returned a cache MISS.');
 
     // Try a smattering of countries (all of which should not be there).
-    $this->assertFalse(isset($config['options']['DE']), 'Germany successfully removed via alternate default config file.');
-    $this->assertFalse(isset($config['options']['BR']), 'Brazil successfully removed via alternate default config file.');
+    $this->assertFalse(isset($config['options'][81]), 'Germany successfully removed via alternate default config file.');
+    $this->assertFalse(isset($config['options'][30]), 'Brazil successfully removed via alternate default config file.');
 
     // Ensure that "nega canada" exists.
-    $this->assertEqual($config['options']['CA']['label'], 'Nega Canada', 'Found country provided via alternate default config file.');
+    $this->assertEqual($config['options'][0]['label'], 'Nega Canada', 'Found country provided via alternate default config file.');
   }
 }
