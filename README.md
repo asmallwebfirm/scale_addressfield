@@ -111,9 +111,11 @@ You may have noticed there are three versions. Which one should you use?
 __7.x-1.x__ (No longer supported)
 - This branch focused on UX bugs; updating to Drupal 7.27 resolves most bugs
   that this version addressed (see the [1.x README]() for details).
+
 __7.x-2.x__ (Deprecated)
 - This branch focused on website scalability, but used older versions of libs
   and dependencies (jquery.addressfield 0.x and addressfield.json 0.x).
+
 __7.x-3.x__
 - This branch solves the same problems as 2.x, but using the most up-to-date
   versions of jquery.addressfield and addressfield.json. This version is
