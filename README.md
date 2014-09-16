@@ -1,17 +1,9 @@
-Scale Address Field
+Scale Address Field [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-3.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield)
 ===================
 
 A utility Drupal extension that helps Drupal scale when unauthenticated users
 are presented with forms containing [Address Fields](). This extension requires
 no configuration.
-
-
-### Versions
-
-Version | Branch | Build Status | Focus
-------- | ------ | ----------- | -----
-2.x     | 7.x-2.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-2.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | This branch focuses on website scalability; it's recommended that you test with your theme before deploying.
-1.x     | 7.x-1.x | [![Build Status](https://travis-ci.org/asmallwebfirm/scale_addressfield.png?branch=7.x-1.x)](https://travis-ci.org/asmallwebfirm/scale_addressfield) | _Deprecated_. This branch focuses on UX bugs; updating to Drupal 7.27 resolves most bugs that this version addresses (see [the 1.x README]() for details).
 
 
 ### Reasons to use this module
@@ -112,6 +104,24 @@ need to download and enable [i18n](). All user-facing strings are available for
 translation under the "address field" group in the string translation UI.
 
 
+#### Differences between versions
+
+You may have noticed there are three versions. Which one should you use?
+
+__7.x-1.x__ (No longer supported)
+- This branch focused on UX bugs; updating to Drupal 7.27 resolves most bugs
+  that this version addressed (see the [1.x README]() for details).
+__7.x-2.x__ (Deprecated)
+- This branch focused on website scalability, but used older versions of libs
+  and dependencies (jquery.addressfield 0.x and addressfield.json 0.x).
+__7.x-3.x__
+- This branch solves the same problems as 2.x, but using the most up-to-date
+  versions of jquery.addressfield and addressfield.json. This version is
+  strongly recommended. If you use the 2.x series of this module and have made
+  no customizations (via hooks, or custom address field configurations), you
+  should be able to update with no issues.
+
+
 ### Contributing
 
 Be mindful that this extension is built on top of other open source software! If
@@ -131,6 +141,6 @@ __addressfield.json__
 
 
 [Address Fields]: https://drupal.org/project/addressfield
-[the 1.x README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x/README.md
 [drush]: https://github.com/drush-ops/drush
+[1.x README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x
 [i18n]: https://drupal.org/project/i18n
