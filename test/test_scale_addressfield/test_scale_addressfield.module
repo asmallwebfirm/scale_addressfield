@@ -24,7 +24,19 @@ function test_scale_addressfield_addressfield_config_pre_alter(&$config) {
     }
 
     // A whole new world.
-    $config['options'][] = $config['options'][39];
+    $config['options'][247] = $config['options'][39];
+    $config['options'][247]['iso'] = 'CA*';
+  }
+}
+
+/**
+ * Implements hook_addressfield_config_post_alter().
+ */
+function test_scale_addressfield_addressfield_config_post_alter(&$config) {
+  if (!variable_get('scale_addressfield_config_json', FALSE)) {
+    // A whole new world.
+    $config['options'][247] = $config['options'][39];
+    $config['options'][247]['iso'] = 'CA*';
   }
 }
 

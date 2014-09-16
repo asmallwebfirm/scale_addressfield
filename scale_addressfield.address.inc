@@ -40,18 +40,10 @@ function scale_addressfield_override_format(&$format, $address, $context = array
     // Load default configurations.
     $default_country = $address['country'];
     $configs = scale_addressfield_get_address_configuration('php');
-    $config = scale_addressfield_get_address_configuration_by_country();
     $options_list = scale_addressfield_get_country_options_list();
 
     // Update the list of countries based on our configuration.
-    $format['country']['#options'] = array_intersect_key($format['country']['#options'], $options_list);
-    foreach ($format['country']['#options'] as $code => $label) {
-      $format['country']['#options'][$code] = $config[$code]['label'];
-    }
-    $missing_countries = array_diff_key($options_list, $format['country']['#options']);
-    foreach ($missing_countries as $code => $label) {
-      $format['country']['#options'][$code] = $label;
-    }
+    $format['country']['#options'] = $options_list;
 
     // Update default labels with configured labels.
     $format['country']['#title'] = $configs['label'];

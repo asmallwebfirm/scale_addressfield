@@ -310,9 +310,9 @@ class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
     // Ensure that hook_addressfield_config_pre_alter() is respected (multiple).
     $this->assertText('Altered country', 'Country label successfully altered via hook_addressfield_config_pre_alter().');
     $this->assertText('State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_pre_alter().');
-    $this->assertOption('CA*', 'New country successfully added via hook_addressfield_config_pre_alter().');
+    $this->assertOption('CA*', 'New country successfully added via hook_addressfield_config_post_alter().');
 
-    // Ensure the config can be overriden by swapping out the file location.
+    // Ensure the config can be overridden by swapping out the file location.
     $alt_config = drupal_get_path('module', 'test_scale_addressfield') . '/alternate-config.json';
     variable_set('scale_addressfield_config_json', $alt_config);
     cache_clear_all('*', 'cache', TRUE);
@@ -419,7 +419,9 @@ class ScaleAddressfieldJsonTestCase extends ScaleAddressfieldWebTestCase {
     $this->assertEqual($config['label'], 'Altered country', 'Country label successfully altered via hook_addressfield_config_pre_alter().');
     $this->assertEqual($config['options'][234]['fields'][2]['locality'][1]['administrativearea']['label'], 'State, Yo', 'Administrative area label successfully altered via hook_addressfield_config_pre_alter().');
     $this->assertEqual($config['options'][234]['fields'][2]['locality'][1]['administrativearea']['options'][38]['OR'], 'Portland', 'Specific administrative area successfully altered via hook_addressfield_config_pre_alter().');
-    $this->assertIdentical($config['options'][247], $config['options'][39], 'New country successfully added via hook_addressfield_config_pre_alter().');
+    $canada_star = $config['options'][39];
+    $canada_star['iso'] = 'CA*';
+    $this->assertIdentical($config['options'][247], $canada_star, 'New country successfully added via hook_addressfield_config_post_alter().');
 
     // Ensure the config can be overriden by swapping out the file location.
     $alt_config = drupal_get_path('module', 'test_scale_addressfield') . '/alternate-config.json';
