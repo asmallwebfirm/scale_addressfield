@@ -43,10 +43,17 @@
   $(document).ready(function() {
     $.getJSON(Drupal.settings.scale_addressfield.config_json, function (data) {
       var wrapper,
-          country;
+          country,
+          position;
 
       // Set the data on the Drupal.settings object for later use.
       Drupal.settings.scale_addressfield.config = data;
+
+      // Store a map of countries to their position in the config array.
+      Drupal.settings.scale_addressfield.config_map = {};
+      for (position in data.options) {
+        Drupal.settings.scale_addressfield.config_map[data.options[position].iso] = position;
+      }
 
       // Iterate through all enabled forms.
       for (wrapper in Drupal.settings.scale_addressfield.enabled) {
@@ -56,17 +63,21 @@
               fields;
 
           if (typeof Drupal.settings.scale_addressfield.hasOwnProperty('config')) {
-            config = Drupal.settings.scale_addressfield.config.options[this.value];
+            position = Drupal.settings.scale_addressfield.config_map[this.value];
+            config = Drupal.settings.scale_addressfield.config.options[position];
             fields = Drupal.settings.scale_addressfield.enabled[wrapper];
 
-            $('#' + wrapper).addressfield(config, fields);
+            if (config.hasOwnProperty('fields')) {
+              $('#' + wrapper).addressfield(config, fields);
+            }
           }
         });
 
         // During the initial load/ready, also run an initial addressfield
         // country change in order to ensure proper configuration.
         country = $('#' + wrapper + ' .country').val();
-        $('#' + wrapper).addressfield(Drupal.settings.scale_addressfield.config.options[country], Drupal.settings.scale_addressfield.enabled[wrapper]);
+        position = Drupal.settings.scale_addressfield.config_map[country];
+        $('#' + wrapper).addressfield(Drupal.settings.scale_addressfield.config.options[position], Drupal.settings.scale_addressfield.enabled[wrapper]);
       }
 
       // Trigger an event, signaling addressfield functionality initialization.
