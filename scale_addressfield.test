@@ -269,6 +269,10 @@ class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
     $this->assertText('State field is required.', 'Administrative area field validation error shown when required.');
     $this->assertText('ZIP code field is required.', 'Postal code field validation error shown when required.');
 
+    // Post a form with an invalid zip code.
+    $this->drupalPost(NULL, array($this->fields['postalcode'] => 'xxxxx'), 'Create new account');
+    $this->assertText('Please check your formatting.', 'Postal code field validation error shown when invalid postal code is provided.');
+
     // Swap to defaulting to France.
     variable_set('site_default_country', 'AF');
     $this->drupalGet('user/register', array('query' => array('cb' => 1)));
