@@ -19,6 +19,9 @@ no configuration.
   - UX: It makes country selection / field swapping instantaneous!
   - It introduces a sane way to override address field labels, select options,
     etc.
+  - It provides field-level validation for postal codes, including optional
+    integration with [Clientside Validation]() for friendlier validation in the
+    browser.
 
 
 ### Installation instructions
@@ -97,11 +100,21 @@ after all configurations have been loaded and applied:
 })(jQuery);
 ```
 
+#### Client-side field validation
+
+This module optionally integrates with [Clientside Validation]() to display
+validation error messages on the client-side for postal codes (and other fields
+specified in the configuration).
+
+
 #### Localization
 
 This module utilizes i18n and i18n_string to localize end-user strings. You will
 need to download and enable [i18n](). All user-facing strings are available for
 translation under the "address field" group in the string translation UI.
+
+A number of UI strings are also available for translation using the normal i18n
+mechanism provided by Drupal core for translating built-in interface strings.
 
 
 #### Differences between versions
@@ -146,3 +159,4 @@ __addressfield.json__
 [drush]: https://github.com/drush-ops/drush
 [1.x README]: https://github.com/asmallwebfirm/scale_addressfield/blob/7.x-1.x
 [i18n]: https://drupal.org/project/i18n
+[Clientside Validation]: http://drupal.org/project/clientside_validation
