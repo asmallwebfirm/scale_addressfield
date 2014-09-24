@@ -41,6 +41,18 @@
    * On ready, asynchronously load the address field conig JSON and apply it.
    */
   $(document).ready(function() {
+    var i18nMessage = Drupal.t("Please check your formatting."),
+        messageField;
+
+    // If jQuery.validate is installed, override jquery.addressfield's default
+    // validation messages with a localized string.
+    if (typeof $.validator !== 'undefined') {
+      for (messageField in Drupal.settings.scale_addressfield.enabled) {
+        $.validator.messages['isValid_' + messageField] = i18nMessage;
+      }
+    }
+
+    // Return our configured JSON file and instantiate jQuery address field.
     $.getJSON(Drupal.settings.scale_addressfield.config_json, function (data) {
       var wrapper,
           country,
