@@ -38,6 +38,14 @@
   };
 
   /**
+   * Override the placeholder method to localize the placeholder text.
+   */
+  $.fn.addressfield.updateEg = function (example) {
+    var text = example ? Drupal.t('e.g. @example', {'@example': example}) : '';
+    $(this).attr('placeholder', text);
+  };
+
+  /**
    * On ready, asynchronously load the address field conig JSON and apply it.
    */
   $(document).ready(function() {
