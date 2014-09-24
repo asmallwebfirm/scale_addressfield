@@ -1,4 +1,4 @@
-/*! Address Field - v1.0.0 - 2014-09-16
+/*! Address Field - v1.0.0 - 2014-09-24
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed GPL-2.0 */
 (function ($) {
@@ -11,10 +11,11 @@
    */
   $.fn.addressfield = function(config, enabled_fields) {
     var $container = $(this),
-      field_order = [],
-      $element,
-      field_pos,
-      field;
+        field_order = [],
+        $element,
+        placeholder,
+        field_pos,
+        field;
 
     // Iterate through defined address fields for this country.
     for (field_pos in config.fields) {
@@ -51,6 +52,10 @@
             if ($element.is('select')) {
               $element = $.fn.addressfield.convertToText.call($element);
             }
+
+            // Apply a placeholder; empty one if none exists.
+            placeholder = config.fields[field_pos][field].hasOwnProperty('eg') ? config.fields[field_pos][field].eg : '';
+            $.fn.addressfield.updateEg.call($element, placeholder);
           }
 
           // Update the label.
@@ -61,6 +66,9 @@
         if (!$.fn.addressfield.isVisible.call($element) && $.inArray(field, enabled_fields) !== -1) {
           $.fn.addressfield.showField.call($element);
         }
+
+        // Add, update, or remove validation handling for this field.
+        $.fn.addressfield.validate.call($element, field, config.fields[field_pos][field]);
       }
     }
 
@@ -121,6 +129,14 @@
   };
 
   /**
+   * Updates a given field's expected format. By default, the placeholder text.
+   */
+  $.fn.addressfield.updateEg = function (example) {
+    var text = example ? 'e.g. ' + example : '';
+    $(this).attr('placeholder', text);
+  };
+
+  /**
    * Updates a given select field's options with given options.
    */
   $.fn.addressfield.updateOptions = function (options) {
@@ -174,6 +190,39 @@
     // Replace the existing element with our new one; also return it.
     $self.replaceWith($select);
     return $select;
+  };
+
+  /**
+   * Optional integration with jQuery.validate.
+   */
+  $.fn.addressfield.validate = function(field, config) {
+    var $this = $(this),
+        methodName = 'isValid_' + field,
+        rule = {},
+        message = "Please check your formatting.";
+
+    // Only proceed if jQuery.validator is installed.
+    if (typeof $.validator !== 'undefined') {
+      // Support pre-set validation messages.
+      message = $.validator.messages.hasOwnProperty(methodName) ? $.validator.messages[methodName] : message;
+
+      // If the provided field has a specified format...
+      if (config.hasOwnProperty('format')) {
+        // Create the validation method.
+        $.validator.addMethod(methodName, function (value) {
+          return new RegExp(config.format).test(value);
+        }, message);
+
+        // Apply the rule.
+        rule[methodName] = true;
+        $this.rules('add', rule);
+      }
+      else {
+        // If there is no format, create the validation method anyway, but have
+        // it do nothing.
+        $.validator.addMethod(methodName, function () {return true;}, message);
+      }
+    }
   };
 
   /**
@@ -237,11 +286,11 @@
    */
   $.fn.addressfield.orderFields = function(order) {
     var length = order.length,
-      i = 0,
-      $element;
+        i,
+        $element;
 
     // Iterate through the fields to be ordered.
-    for (i; i < length; ++i) {
+    for (i = 0; i < length; ++i) {
       if (i in order) {
         // Save off the element container over its class selector in order.
         $element = $.fn.addressfield.container.call(this.find('.' + order[i]));
