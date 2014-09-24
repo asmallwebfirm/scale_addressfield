@@ -136,6 +136,7 @@ function scale_addressfield_override_format(&$format, $address, $context = array
     );
     $format['locality_block']['postal_code']['#element_validate'] = array(
       'scale_addressfield_validate_conditional_element',
+      'scale_addressfield_validate_field_format',
     );
 
     // Force any administrative area fields to be text rather than a select.
