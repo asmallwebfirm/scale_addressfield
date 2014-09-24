@@ -18,7 +18,7 @@
   $.fn.addressfield.convertToText = function () {
     $(this).attr('class', $(this).attr('class').replace('form-select', 'form-text'));
     return originalConvertToText.call(this);
-  }
+  };
 
   /**
    * Override the provided label update method to take Drupal's "required"
@@ -26,7 +26,7 @@
    */
   $.fn.addressfield.updateLabel = function (label) {
     var fieldId = $(this).attr('id'),
-        $label = $('label[for="' + fieldId + '"]'),
+        $label = $('label[for="' + fieldId + '"]').not('.error'),
         old_label = $label.contents().filter(function() {
         return this.nodeType == 3;
       }).text(),
@@ -35,7 +35,7 @@
     if ($label.length) {
       $label.html(old_markup.replace(old_label, label + ' '));
     }
-  }
+  };
 
   /**
    * On ready, asynchronously load the address field conig JSON and apply it.
