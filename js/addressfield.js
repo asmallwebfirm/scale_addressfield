@@ -18,7 +18,7 @@
   $.fn.addressfield.convertToText = function () {
     $(this).attr('class', $(this).attr('class').replace('form-select', 'form-text'));
     return originalConvertToText.call(this);
-  }
+  };
 
   /**
    * Override the provided label update method to take Drupal's "required"
@@ -26,7 +26,7 @@
    */
   $.fn.addressfield.updateLabel = function (label) {
     var fieldId = $(this).attr('id'),
-        $label = $('label[for="' + fieldId + '"]'),
+        $label = $('label[for="' + fieldId + '"]').not('.error'),
         old_label = $label.contents().filter(function() {
         return this.nodeType == 3;
       }).text(),
@@ -35,12 +35,24 @@
     if ($label.length) {
       $label.html(old_markup.replace(old_label, label + ' '));
     }
-  }
+  };
 
   /**
    * On ready, asynchronously load the address field conig JSON and apply it.
    */
   $(document).ready(function() {
+    var i18nMessage = Drupal.t("Please check your formatting."),
+        messageField;
+
+    // If jQuery.validate is installed, override jquery.addressfield's default
+    // validation messages with a localized string.
+    if (typeof $.validator !== 'undefined') {
+      for (messageField in Drupal.settings.scale_addressfield.enabled) {
+        $.validator.messages['isValid_' + messageField] = i18nMessage;
+      }
+    }
+
+    // Return our configured JSON file and instantiate jQuery address field.
     $.getJSON(Drupal.settings.scale_addressfield.config_json, function (data) {
       var wrapper,
           country,

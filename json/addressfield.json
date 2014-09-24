@@ -299,7 +299,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^((?:[A-HJ-NP-Z])?\\d{4})([A-Z]{3})?$",
+                "eg": "B1921"
               }
             },
             {
@@ -433,7 +435,9 @@
             },
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{4}$",
+                "eg": "2000"
               }
             }
           ]
@@ -1024,7 +1028,9 @@
             },
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{5}[\\-]?\\d{3}$",
+                "eg": "10025-345"
               }
             }
           ]
@@ -1333,7 +1339,9 @@
             },
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^[ABCEGHJKLMNPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z][ ]?\\d[ABCEGHJ-NPRSTV-Z]\\d$",
+                "eg": "K1A 0B1"
               }
             }
           ]
@@ -1498,7 +1506,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{6}$",
+                "eg": "101200"
               }
             },
             {
@@ -2446,7 +2456,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{2}[ ]?\\d{3}$",
+                "eg": "75002"
               }
             },
             {
@@ -2656,7 +2668,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{5}$",
+                "eg": "60322"
               }
             },
             {
@@ -3334,7 +3348,9 @@
             },
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{6}$",
+                "eg": "110005"
               }
             }
           ]
@@ -3974,7 +3990,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{3}-?\\d{4}$",
+                "eg": "142-0062"
               }
             },
             {
@@ -5030,7 +5048,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{5}$",
+                "eg": "03400"
               }
             },
             {
@@ -5430,7 +5450,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{4}[ ]?[A-Z]{2}$",
+                "eg": "2585 GJ"
               }
             },
             {
@@ -6861,7 +6883,9 @@
             },
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{6}$",
+                "eg": "238880"
               }
             }
           ]
@@ -7413,7 +7437,9 @@
           "locality": [
             {
               "postalcode": {
-                "label": "Postal code"
+                "label": "Postal code",
+                "format": "^\\d{3}(\\d{2})?$",
+                "eg": "100"
               }
             },
             {
@@ -7948,7 +7974,9 @@
             },
             {
               "postalcode": {
-                "label": "Postcode"
+                "label": "Postcode",
+                "format": "^GIR[ ]?0AA|((AB|AL|B|BA|BB|BD|BH|BL|BN|BR|BS|BT|BX|CA|CB|CF|CH|CM|CO|CR|CT|CV|CW|DA|DD|DE|DG|DH|DL|DN|DT|DY|E|EC|EH|EN|EX|FK|FY|G|GL|GY|GU|HA|HD|HG|HP|HR|HS|HU|HX|IG|IM|IP|IV|JE|KA|KT|KW|KY|L|LA|LD|LE|LL|LN|LS|LU|M|ME|MK|ML|N|NE|NG|NN|NP|NR|NW|OL|OX|PA|PE|PH|PL|PO|PR|RG|RH|RM|S|SA|SE|SG|SK|SL|SM|SN|SO|SP|SR|SS|ST|SW|SY|TA|TD|TF|TN|TQ|TR|TS|TW|UB|W|WA|WC|WD|WF|WN|WR|WS|WV|YO|ZE)(\\d[\\dA-Z]?[ ]?\\d[ABD-HJLN-UW-Z]{2}))|BFPO[ ]?\\d{1,4}$",
+                "eg": "SE1 0SU"
               }
             }
           ]
@@ -8168,7 +8196,9 @@
             },
             {
               "postalcode": {
-                "label": "ZIP code"
+                "label": "ZIP code",
+                "format": "^\\d{5}(?:[-\\s]\\d{4})?$",
+                "eg": "98103"
               }
             }
           ]
