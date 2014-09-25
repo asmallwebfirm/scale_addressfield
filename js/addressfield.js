@@ -46,7 +46,7 @@
   };
 
   /**
-   * On ready, asynchronously load the address field conig JSON and apply it.
+   * On ready, asynchronously load the address field config JSON and apply it.
    */
   $(document).ready(function() {
     var i18nMessage = Drupal.t("Please check your formatting."),
@@ -79,8 +79,10 @@
       for (wrapper in Drupal.settings.scale_addressfield.enabled) {
         // Attach listeners.
         $('#' + wrapper + ' .country').bind('change', function () {
-          var config,
-              fields;
+          var $field,
+              config,
+              fields,
+              field;
 
           if (typeof Drupal.settings.scale_addressfield.hasOwnProperty('config')) {
             position = Drupal.settings.scale_addressfield.config_map[this.value];
@@ -89,6 +91,17 @@
 
             if (config.hasOwnProperty('fields')) {
               $('#' + wrapper).addressfield(config, fields);
+
+              // Trigger validation if jQuery validate is installed and there's
+              // a value to validate.
+              if (typeof $.validator !== undefined) {
+                for (field in fields) {
+                  $field = $('.' + fields[field]);
+                  if ($field.val()) {
+                    $field.change().valid();
+                  }
+                }
+              }
             }
           }
         });
