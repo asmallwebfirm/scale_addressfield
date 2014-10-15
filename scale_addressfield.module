@@ -56,6 +56,12 @@ function scale_addressfield_validate_field_format($element, &$form, &$form_state
   // Preconditions for this validation handler.
   $definition = scale_addressfield_get_field($country, $current_field);
   $format = isset($definition['format']) ? $definition['format'] : FALSE;
+  $required = isset($element['#required']) && $element['#required'];
+
+  // If the field is not required and the value is empty, do not validate.
+  if (!$required && empty($element['#value'])) {
+    return;
+  }
 
   // Check if this field is even a thing for this country.
   if ($definition && $format) {
