@@ -1,4 +1,4 @@
-/*! Address Field - v1.0.0 - 2014-09-26
+/*! Address Field - v1.0.0 - 2014-10-15
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed GPL-2.0 */
 (function ($) {
@@ -82,6 +82,9 @@
 
     // Now ensure the fields are in their given order.
     $.fn.addressfield.orderFields.call($container, field_order);
+
+    // Trigger an addressfield:after event on the container.
+    $container.trigger('addressfield:after');
 
     return this;
   };
