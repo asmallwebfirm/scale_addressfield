@@ -72,7 +72,7 @@ function scale_addressfield_override_format(&$format, $address, $context = array
       'data' => array(
         'scale_addressfield' => array(
           'config_json' => url('addressfield/config.json', array('absolute' => TRUE)),
-          'enabled' => array($format['#wrapper_id'] => array()),
+          'enabled' => array($format['#wrapper_id'] => array('country' => '.country')),
         ),
       ),
       'type' => 'setting',
@@ -91,7 +91,7 @@ function scale_addressfield_override_format(&$format, $address, $context = array
           'data' => array(
             'scale_addressfield' => array(
               'enabled' => array(
-                $format['#wrapper_id'] => array($xnal_field),
+                $format['#wrapper_id'] => array($xnal_field => '.' . $xnal_field),
               ),
             ),
           ),
@@ -109,7 +109,7 @@ function scale_addressfield_override_format(&$format, $address, $context = array
               'data' => array(
                 'scale_addressfield' => array(
                   'enabled' => array(
-                    $format['#wrapper_id'] => array($xnal_field),
+                    $format['#wrapper_id'] => array($xnal_field => '.' . $xnal_field),
                   ),
                 ),
               ),
