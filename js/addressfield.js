@@ -54,21 +54,19 @@
       var validationInstalled = typeof $.validator !== 'undefined',
           i18nMessage = Drupal.t("Please check your formatting."),
           messagePos,
-          wrapper,
-          country,
-          position;
+          wrapper;
 
       // Set the data on the Drupal.settings object for later use.
       Drupal.settings.scale_addressfield.config = data;
 
-      // Store a map of countries to their position in the config array.
-      Drupal.settings.scale_addressfield.config_map = {};
-      for (position in data.options) {
-        Drupal.settings.scale_addressfield.config_map[data.options[position].iso] = position;
-      }
-
       // Iterate through all enabled forms.
       for (wrapper in Drupal.settings.scale_addressfield.enabled) {
+        // Initialize jQuery.addressfield for this wrapper.
+        $('#' + wrapper).addressfield({
+          json: data,
+          fields: Drupal.settings.scale_addressfield.enabled[wrapper]
+        });
+
         // If jQuery.validate is installed, override jquery.addressfield's
         // default validation messages with a localized string.
         if (validationInstalled) {
@@ -77,40 +75,9 @@
           }
         }
 
-        // Attach listeners.
-        $('#' + wrapper + ' .country').bind('change', function () {
-          var $field,
-              config,
-              fields,
-              field;
-
-          if (typeof Drupal.settings.scale_addressfield.hasOwnProperty('config')) {
-            position = Drupal.settings.scale_addressfield.config_map[this.value];
-            config = Drupal.settings.scale_addressfield.config.options[position];
-            fields = Drupal.settings.scale_addressfield.enabled[wrapper];
-
-            if (config.hasOwnProperty('fields')) {
-              $('#' + wrapper).addressfield(config, fields);
-
-              // Trigger validation if jQuery validate is installed and there's
-              // a value to validate.
-              if (validationInstalled) {
-                for (field in fields) {
-                  $field = $('.' + fields[field]);
-                  if ($field.val()) {
-                    $field.change().valid();
-                  }
-                }
-              }
-            }
-          }
-        });
-
-        // During the initial load/ready, also run an initial addressfield
-        // country change in order to ensure proper configuration.
-        country = $('#' + wrapper + ' .country').val();
-        position = Drupal.settings.scale_addressfield.config_map[country];
-        $('#' + wrapper).addressfield(Drupal.settings.scale_addressfield.config.options[position], Drupal.settings.scale_addressfield.enabled[wrapper]);
+        // During the initial load/ready, run an initial country change in order
+        // to ensure proper configuration.
+        $(Drupal.settings.scale_addressfield.enabled[wrapper].country).change();
       }
 
       // Trigger an event, signaling addressfield functionality initialization.

@@ -237,7 +237,7 @@ class ScaleAddressfieldFormRenderTestCase extends ScaleAddressfieldWebTestCase {
     // Iterate through all expected fields and assert their existence.
     foreach ($this->fields as $xnal => $input_name) {
       // Ensure they're in the Drupal.settings configuration.
-      $this->assertTrue(array_search($xnal, $settings['enabled']['addressfield-wrapper']) !== FALSE, format_string('The %field field was properly added to Drupal.settings.', array(
+      $this->assertEqual($settings['enabled']['addressfield-wrapper'][$xnal], '.' . $xnal, format_string('The %field field was properly added to Drupal.settings.', array(
         '%field' => $xnal,
       )));
 
