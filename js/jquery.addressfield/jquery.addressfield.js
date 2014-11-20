@@ -1,4 +1,4 @@
-/*! Address Field - v1.0.0 - 2014-11-09
+/*! Address Field - v1.0.0 - 2014-11-20
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed MIT */
 (function ($) {
@@ -336,7 +336,8 @@
       if (config.hasOwnProperty('format')) {
         // Create the validation method.
         $.validator.addMethod(methodName, function (value) {
-          return new RegExp(config.format).test(value);
+          // @todo Drop jQuery 1.3 support. No need for .toString() call.
+          return new RegExp(config.format).test($.trim(value.toString()));
         }, message);
 
         // Apply the rule.
