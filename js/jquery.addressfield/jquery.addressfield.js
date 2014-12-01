@@ -1,4 +1,4 @@
-/*! Address Field - v1.0.0 - 2014-11-20
+/*! Address Field - v1.0.0 - 2014-12-01
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed MIT */
 (function ($) {
