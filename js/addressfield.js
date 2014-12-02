@@ -74,10 +74,6 @@
             $.validator.messages['isValid_' + Drupal.settings.scale_addressfield.enabled[wrapper][messagePos]] = i18nMessage;
           }
         }
-
-        // During the initial load/ready, run an initial country change in order
-        // to ensure proper configuration.
-        $(Drupal.settings.scale_addressfield.enabled[wrapper].country).change();
       }
 
       // Trigger an event, signaling addressfield functionality initialization.

@@ -1,4 +1,4 @@
-/*! Address Field - v1.0.0 - 2014-12-01
+/*! Address Field - v1.0.1 - 2014-12-01
 * https://github.com/tableau-mkt/jquery.addressfield
 * Copyright (c) 2014 Eric Peterson; Licensed MIT */
 (function ($) {
@@ -62,13 +62,16 @@
         async: configs.async,
         success: function (data) {
           $.fn.addressfield.binder.call($container, configs.fields, $.fn.addressfield.transform(data));
+          $(configs.fields.country).change();
         }
       });
       return $container;
     }
     // In this case, a direct configuration has been provided inline.
     else if (typeof configs.json === 'object' && configs.json !== null) {
-      return $.fn.addressfield.binder.call($container, configs.fields, $.fn.addressfield.transform(configs.json));
+      $.fn.addressfield.binder.call($container, configs.fields, $.fn.addressfield.transform(configs.json));
+      $(configs.fields.country).change();
+      return $container;
     }
     // Legacy support for manual, synchronous, external control.
     // @deprecated Remove this functionality in the next major version (2.0.x).
