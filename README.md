@@ -27,15 +27,10 @@ no configuration.
 ### Installation instructions
 
 The best way to install this module is to use [drush][]! You can do so
-using the following command:
+using the following commands:
 
-```
-drush dl scale_addressfield --source=http://www.asmallwebfirm.net/drupal/release-history
-```
-
-Enable the module like you would any other module, for example:
-
-```
+```sh
+drush dl scale_addressfield
 drush en scale_addressfield
 ```
 
