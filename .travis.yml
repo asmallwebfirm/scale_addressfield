@@ -1,7 +1,7 @@
 language: php
 
 php:
-  - 5.3
+  - 5.6
 
 mysql:
   database: scale_addressfield
@@ -10,9 +10,9 @@ mysql:
 
 install:
   # install drush 5.x (because 6.x's test-run doesn't exit with proper status code).
-  - pear channel-discover pear.drush.org
-  - pear install drush/drush-5.10.0.0
-  - phpenv rehash
+  - git clone https://github.com/drush-ops/drush.git /opt/drush
+  - pushd /opt/drush; git checkout cea2ca0; popd
+  - sudo ln -s /opt/drush/drush /usr/bin/drush
 
   # install additional requirements
   - sudo apt-get update > /dev/null
@@ -24,7 +24,7 @@ before_script:
 
   # create new site, stubbing sendmail path with true to prevent delivery errors and manually resolving drush path
   - mysql -e 'create database scale_addressfield'
-  - php -d sendmail_path=`which true` `pear config-get php_dir`/drush/drush.php --yes core-quick-drupal --profile=testing --no-server --db-url=mysql://root:@127.0.0.1/scale_addressfield --enable=simpletest scale_addressfield
+  - php -d sendmail_path=`which true` /opt/drush/drush.php --yes core-quick-drupal --profile=testing --no-server --db-url=mysql://root:@127.0.0.1/scale_addressfield --enable=simpletest scale_addressfield
 
   # reference and enable scale_addressfield in the build site
   - ln -s $(readlink -e $(cd -)) scale_addressfield/drupal/sites/all/modules/scale_addressfield
